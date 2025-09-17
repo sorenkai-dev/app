@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: default
+
+resources:
+  - configmap.yaml
+  - secrets.yaml
+  - deployment.yaml
+  - service.yaml
+
+images:
+  - name: sorenkai/backend
+    newName: sorenkai/backend
+    newTag: dev
+
+commonLabels:
+  app.kubernetes.io/name: sorenkai-api
+  app.kubernetes.io/part-of: sorenkai

@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mongo-backup-daily
+  labels:
+    app: sorenkai-api
+spec:
+  schedule: "0 2 * * *"  # 02:00 UTC daily
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: sorenkai-api
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: mongodump
+              image: mongo:7.0
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: MONGODB_URI
+                  valueFrom:
+                    secretKeyRef:
+                      name: sorenkai-api-secrets
+                      key: MONGODB_URI
+                - name: RETENTION_DAYS
+                  value: "7"
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+              command: ["bash", "-lc"]
+              args:
+                - |
+                  set -euo pipefail
+                  TS=$(date +%Y%m%d-%H%M%S)
+                  OUT_DIR=/backups/${TS}
+                  mkdir -p "$OUT_DIR"
+                  echo "[backup] Running mongodump to $OUT_DIR"
+                  mongodump --uri="$MONGODB_URI" --out="$OUT_DIR"
+                  echo "[backup] Pruning backups older than ${RETENTION_DAYS} days"
+                  find /backups -maxdepth 1 -type d -name '20*' -mtime +${RETENTION_DAYS} -print -exec rm -rf {} +
+          volumes:
+            - name: backups
+              persistentVolumeClaim:
+                claimName: mongo-backups

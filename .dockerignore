@@ -1,0 +1,34 @@
+# VCS
+.git
+.gitignore
+.gitattributes
+
+# IDE / tooling
+.idea
+*.iml
+.vscode
+*.swp
+
+# Gradle & build outputs
+.gradle
+build
+out
+**/build
+**/out
+
+# Node/other
+node_modules
+
+# Local secrets & envs
+.env
+.env.*
+secrets/
+*.keystore
+*.p12
+*.pem
+*.crt
+firebase-service-account.json
+
+# OS noise
+.DS_Store
+Thumbs.db

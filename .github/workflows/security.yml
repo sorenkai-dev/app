@@ -1,0 +1,74 @@
+name: Security Scans
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+  schedule:
+    - cron: "0 3 * * 1"  # Weekly on Mondays at 03:00 UTC
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+jobs:
+  trivy-image-scan:
+    name: Trivy Container Scan (fail on CRITICAL)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '24'
+          cache: 'gradle'
+
+      - name: Grant execute permission for Gradle Wrapper
+        run: chmod +x ./gradlew
+
+      - name: Build fat JAR (no tests)
+        run: ./gradlew --no-daemon --stacktrace buildFatJar -x test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: |
+          docker build -t sorenkai/backend:ci .
+
+      - name: Trivy scan image
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: 'sorenkai/backend:ci'
+          format: 'table'
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+          exit-code: '1'
+          ignore-unfixed: true
+
+  semgrep-sast:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: p/ci
+          generateSarif: true
+          publishToken: ''
+        env:
+          SEMGREP_APP_TOKEN: ''
+
+      - name: Upload SARIF to GitHub (Code Scanning)
+        uses: github/codeql-action/upload-sarif@v3
+        if: ${{ always() && hashFiles('semgrep.sarif') != '' }}
+        with:
+          sarif_file: semgrep.sarif

@@ -1,114 +1,142 @@
-# SorenKai Backend (Ktor)
+# SorenKai Backend
 
-Backend service for [sorenkai.com](https://www.sorenkai.com) powering community features like story submissions, comments, and reports.
-Built with [Ktor](https://ktor.io/), [MongoDB](https://www.mongodb.com/), and [Firebase](https://firebase.google.com/) (Authentication + Realtime Database). Firebase is required.
+Backend API built with Ktor 3, Kotlinx Serialization, MongoDB, and Firebase Auth.
 
-Useful Ktor links:
-- Ktor docs: https://ktor.io/docs/home.html
-- Ktor GitHub: https://github.com/ktorio/ktor
+## Deployment (Kubernetes with Kustomize)
 
-## Features
+Manifests are provided under `deploy/k8s`:
+- `deployment.yaml`: Non-root, read-only FS (tmp writable), probes to `/healthz`, env/secret wiring, zero-downtime rolling updates enabled (maxUnavailable=0, maxSurge=1), lifecycle preStop drain, and terminationGracePeriodSeconds set.
+- `service.yaml`: ClusterIP service exposing port 80 -> container 8080.
+- `configmap.yaml`: Non-sensitive configuration (ENV, ALLOWED_ORIGINS, MAX_UPLOAD_MB, FIREBASE_RTDB_URL, shutdown).
+- `secrets.yaml`: Template for sensitive values (Mongo URI, Firebase project id) and Google SA secret placeholder.
+- `kustomization.yaml`: Ties resources together and allows image tag override.
 
-This project uses Ktor 2.x with a small, composable module setup:
-- Routing, content negotiation, and JSON via kotlinx.serialization
-- Request/response logging and default headers
-- Firebase Authentication (JWT via Firebase ID tokens). See Security.kt
-- Health and metrics endpoints (see Monitoring.kt)
-- OpenAPI spec available in `src/main/resources/openapi/documentation.yaml` (serve via Swagger/OpenAPI if enabled)
-- Rate limiting/post interval tracking via Firebase Realtime Database
+Quick start (staging example):
+1. Edit `deploy/k8s/configmap.yaml` to set `ENV`, `ALLOWED_ORIGINS`, and RTDB URL as needed.
+2. Create secrets securely (recommended):
+   - `kubectl create secret generic sorenkai-api-secrets \
+       --from-literal=MONGODB_URI='mongodb://user:pass@mongo:27017/sorenkai?authSource=admin&retryWrites=false' \
+       --from-literal=FIREBASE_PROJECT_ID='sorenkai'`
+   - `kubectl create secret generic sorenkai-api-google-sa \
+       --from-file=firebase-service-account.json=/path/to/your-sa.json`
+   (Alternatively, edit `deploy/k8s/secrets.yaml` with placeholders and apply only to non-prod.)
+3. Deploy:
+   - `kubectl apply -k deploy/k8s`
+4. Update the image tag via kustomize when promoting:
+   - `kubectl set image deployment/sorenkai-api api=sorenkai/backend:<tag>`
 
-## Project structure
+## Secrets management
 
+- No secrets are committed to this repository. The `secrets/` directory is git-ignored.
+- Production/staging use external secret stores:
+  - Docker Compose: Docker secrets (see `docker-compose.yml`, `secrets.firebase_sa`).
+  - Kubernetes: K8s Secrets mounted at `/var/run/secrets/google` (see `deploy/k8s/deployment.yaml`).
+- Rotation: follow the runbook at `docs/runbooks/firebase-credentials-rotation.md`.
+- Local development:
+  - Set `GOOGLE_APPLICATION_CREDENTIALS` to a directory or file path containing your service account JSON.
+  - Do not commit the credential file.
+
+## Data durability (Mongo backups)
+
+- Runbook: see docs/runbooks/mongo-backup-restore.md for Docker Compose and Kubernetes procedures.
+- Kubernetes templates: deploy/k8s/backup includes a PersistentVolumeClaim, a daily backup CronJob (02:00 UTC, simple N-day retention), and a restore Job template.
+- Recommendation: sync backups to durable object storage and perform quarterly restore drills.
+
+## Runbooks & Incident Response
+
+- Incident Response: see docs/runbooks/incident-response.md for playbooks covering high error rate/latency, Mongo outages, Firebase auth issues, rate limiting, and rollout problems.
+- Backups/Restore: docs/runbooks/mongo-backup-restore.md
+- Firebase credentials rotation: docs/runbooks/firebase-credentials-rotation.md
+- DSR (export/delete): docs/runbooks/dsr-requests.md
+
+## API lifecycle & versioning
+
+- Versioning strategy: URI-based major versions (e.g., /v1, /v2) for breaking changes. v1 is current and stable.
+- Backward-compatible changes: additive fields/endpoints may be introduced within v1; clients should ignore unknown fields.
+- Deprecation policy: when functionality is slated for removal, it will be marked `deprecated: true` in the OpenAPI spec and responses MAY include:
+  - Deprecation: true
+  - Sunset: RFC 8594 date-time of planned removal
+  - Link: rel="deprecation" to a migration guide
+- Response headers: the server includes `X-API-Version: v1` on all responses for diagnostics.
+- Removal timelines: default 90 days between deprecation announcement and removal (unless security/bugfix requires faster action).
+
+See the OpenAPI spec at src/main/resources/openapi/documentation.yaml (info section) for authoritative details.
+
+## Testing
+
+See also Performance and Load testing below for k6-based baseline scripts.
+
+This repository uses a pragmatic testing approach focused on MVP-critical behavior and regression prevention (see `src/main/kotlin/com/sorenkai/api/StillNeed.md`, item 10).
+
+- Philosophy: not “every possible test,” but high-value coverage of services, core utilities, and route behaviors. Aim for solid confidence with maintainable tests.
+- Structure: test tree mirrors the main source tree.
+  - Main: `src/main/kotlin/com/sorenkai/api/...`
+  - Tests: `src/test/kotlin/com/sorenkai/api/...`
+
+### What’s covered (so far)
+- Unit tests
+  - `StoryService`: create flow, trimming/normalization, and rate-limited failure.
+  - `CommentService`: happy path, validation errors, story-not-found, rate-limited failure.
+  - `ReportService`: happy path and rate-limited failure.
+  - `RtdbPostRateLimiter` (local fallback): window/limit increments.
+  
+- Integration tests
+  - Route flows for stories, comments, and reports using in-memory test engine or Testcontainers Mongo to verify pagination.
+
+- Contract tests
+  - Snapshot-based checks to ensure responses match the OpenAPI spec for success and error cases.
+
+### How we make services testable
+- Introduced a tiny `RateLimiter` interface that the existing RTDB-backed limiters implement. Services depend on the interface, so tests can pass fake implementations.
+- Made repository classes `open` and key methods `open` so tests can provide lightweight in-memory fakes by subclassing without pulling extra mocking libs.
+
+### Running tests
+- From the repo root:
+  - Linux/macOS: `./gradlew test`
+  - Windows: `gradlew.bat test`
+
+Gradle will compile and run unit, integration, and contract tests under `src/test/kotlin`. Test resources live in `src/test/resources`.
+
+### Compliance & Data Policy (Step 10)
+- Public, user-facing policies (Privacy Policy, Cookie Policy, Community Guidelines, Disclaimer, Copyright) are hosted on the frontend.
+- Internal, engineering-facing docs live in this repo to operationalize those promises:
+  - Backend Data Policy: `docs/policy/data-policy.md`
+  - DSR (export/delete) runbook: `docs/runbooks/dsr-requests.md`
+- These give the solo admin practical, copy‑pasteable commands to export or delete a user’s data by UID. Automation endpoints are optional and can be added later.
+
+## Performance & Load testing
+
+- Scripts and docs are under `docs/performance/`.
+- Quick start (local):
+  - Ensure the server runs with test auth bypass enabled (non-prod only): set TEST_AUTH_ENABLED=true and TEST_AUTH_UID; still include an Authorization header.
+  - Stories baseline: `k6 run docs/performance/k6-stories.js`
+  - See `docs/performance/README.md` for more.
+- Baseline report: `docs/performance/load-test-report.md` (sample numbers and SLI targets).
+
+## Observability to operations
+
+- Metrics: Prometheus metrics are exposed at `/metrics` (Micrometer). Includes `http_server_requests_seconds_*` histograms/counters and custom counters: `stories_created_total`, `comments_created_total`, `reports_created_total`.
+- Grafana dashboard: import `docs/observability/dashboards/api-overview.json`.
+  - Panels: RPS, 5xx error rate, p95/p99 latency, requests by status, top endpoints, creation counters.
+- Prometheus alerts: apply `deploy/monitoring/prometheus-rules.yaml` to your Prometheus Alerting config.
+  - Alerts: APIHighErrorRate (warn), APISevereErrorRate (crit), APIHighLatencyP95 (warn), APIHighLatencyP99 (crit), APINoTraffic (warn).
+
+### Kubernetes Prometheus example (ConfigMap)
+
+If you manage Prometheus rules via ConfigMaps, you can create one like:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sorenkai-api-prometheus-rules
+  labels:
+    role: alert-rules
+    prometheus: k8s
+    app: sorenkai-api
+data:
+  sorenkai-api.rules.yaml: |
+    # Paste the contents of deploy/monitoring/prometheus-rules.yaml here
 ```
-src/main/kotlin/
-├─ Application.kt        # Application entrypoint
-├─ Routing.kt            # Routes wiring
-├─ Serialization.kt      # JSON configuration
-├─ Security.kt           # Auth/JWT configuration (Firebase Authentication)
-├─ Monitoring.kt         # Health/metrics exposure
-├─ HTTP.kt               # HTTP config/helpers
-├─ Databases.kt          # Database wiring (MongoDB, etc.)
-├─ Frameworks.kt         # DI/other frameworks wiring
-├─ HelloService.kt       # Example service
-└─ CarsSchema.kt         # Example schema/model
 
-src/main/resources/
-├─ application.yaml      # Runtime configuration
-├─ logback.xml           # Logging config
-└─ openapi/documentation.yaml  # OpenAPI spec
-```
-
-## Quick start
-
-Prerequisites:
-- JDK 17+
-- MongoDB accessible (if you enable DB features)
-- Firebase service account (required for Authentication and Realtime Database)
-
-Run locally (Windows PowerShell):
-- .\gradlew.bat run
-
-Build and test:
-- .\gradlew.bat test
-- .\gradlew.bat build
-
-If the server starts successfully, you'll see logs like:
-```
-INFO  Application - Application started
-INFO  Application - Responding at http://0.0.0.0:8080
-```
-
-## Configuration
-
-This project uses `application.yaml`. Environment variables can override config at runtime (typical in Ktor and containerized deployments).
-
-Common variables:
-- PORT: server port (default 8080)
-- MONGODB_URI: MongoDB connection string
-- FIREBASE_PROJECT_ID: Firebase project id (required)
-- GOOGLE_APPLICATION_CREDENTIALS: path or inline JSON to service account (required)
-- ALLOWED_ORIGINS: comma-separated CORS origins
-- FIREBASE_DATABASE_URL: Firebase Realtime Database URL used for rate limiting/tracking
-
-Example application.yaml snippet:
-```
-ktor:
-  deployment:
-    port: 8080
-  application:
-    modules:
-      - ApplicationKt.module
-```
-
-## Authentication
-
-Firebase Authentication is mandatory. Requests that require auth must include:
-- Authorization: Bearer <Firebase ID Token>
-
-Custom claims can enforce ToS/Privacy acceptance and roles (admin/moderator). See Security.kt for details.
-
-## Rate limiting
-
-Posting intervals and basic rate limiting are enforced via Firebase Realtime Database. Ensure the service account has database access and FIREBASE_DATABASE_URL is configured.
-
-## Monitoring
-
-- Health: GET /healthz
-- Metrics: GET /metrics (Prometheus format)
-
-## API docs
-
-- OpenAPI spec: src/main/resources/openapi/documentation.yaml
-- Swagger UI: If the Swagger/OpenAPI plugins are enabled, the UI will be served at the configured route (e.g., /swagger or /docs).
-
-## License
-
-Proprietary. 
-
-All rights reserved © The Kindred LLC, 2025.
-
-## Contact
-
-- Website: [www.sorenkai.com](https://www.sorenkai.com)
-- Legal: [legal@sorenkai.com](mailto:legal@sorenkai.com?subject=Legal)
-- Reports: [report@sorenkai.com](mailto:report@sorenkai.com?subject=Report)
+Then reference this ConfigMap from your Prometheus deployment/operator according to your setup.

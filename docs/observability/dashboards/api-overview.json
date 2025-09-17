@@ -1,0 +1,115 @@
+{
+  "__inputs": [],
+  "__requires": [
+    {"type": "grafana", "id": "grafana", "name": "Grafana", "version": "9.5.0"},
+    {"type": "panel", "id": "timeseries", "name": "Time series", "version": "9.5.0"}
+  ],
+  "title": "SorenKai API - Overview",
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "tags": ["sorenkai", "api"],
+  "templating": {
+    "list": [
+      {
+        "name": "job",
+        "type": "query",
+        "datasource": null,
+        "refresh": 2,
+        "query": "label_values(up, job)",
+        "current": {"text": "sorenkai", "value": "sorenkai"},
+        "includeAll": false
+      },
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": null,
+        "refresh": 2,
+        "query": "label_values(up{job=\"$job\"}, instance)",
+        "includeAll": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "RPS",
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"$job\", instance=~\"$instance\", outcome=\"SUCCESS\"}[5m]) + rate(http_server_requests_seconds_count{job=\"$job\", instance=~\"$instance\", outcome=\"CLIENT_ERROR\"}[5m]) + rate(http_server_requests_seconds_count{job=\"$job\", instance=~\"$instance\", outcome=\"SERVER_ERROR\"}[5m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Error rate (5xx %)",
+      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+      "targets": [
+        {
+          "expr": "100 * (sum(rate(http_server_requests_seconds_count{job=\"$job\", instance=~\"$instance\", outcome=\"SERVER_ERROR\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"$job\", instance=~\"$instance\"}[5m])))",
+          "refId": "A"
+        }
+      ],
+      "options": {"colorMode": "value"}
+    },
+    {
+      "type": "stat",
+      "title": "p95 latency (ms)",
+      "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+      "targets": [
+        {
+          "expr": "1000 * histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"$job\", instance=~\"$instance\"}[5m])) by (le))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "p99 latency (ms)",
+      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+      "targets": [
+        {
+          "expr": "1000 * histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"$job\", instance=~\"$instance\"}[5m])) by (le))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests by status",
+      "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "sum by (status)(rate(http_server_requests_seconds_count{job=\"$job\", instance=~\"$instance\"}[5m]))", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency p95/p99 (ms)",
+      "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "1000 * histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"$job\", instance=~\"$instance\"}[5m])) by (le))", "refId": "A"},
+        {"expr": "1000 * histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"$job\", instance=~\"$instance\"}[5m])) by (le))", "refId": "B"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Top endpoints by RPS",
+      "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "topk(5, sum by (uri)(rate(http_server_requests_seconds_count{job=\"$job\", instance=~\"$instance\"}[5m])))", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Rate limiter events",
+      "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "rate(stories_created_total{job=\"$job\", instance=~\"$instance\"}[5m])", "refId": "A"},
+        {"expr": "rate(comments_created_total{job=\"$job\", instance=~\"$instance\"}[5m])", "refId": "B"},
+        {"expr": "rate(reports_created_total{job=\"$job\", instance=~\"$instance\"}[5m])", "refId": "C"}
+      ]
+    }
+  ]
+}

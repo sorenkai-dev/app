@@ -1,51 +1,72 @@
-val koin_version: String by project
-val kotlin_version: String by project
-val logback_version: String by project
-val mongo_version: String by project
-val prometheus_version: String by project
-
 plugins {
-    kotlin("jvm") version "2.2.20"
-    id("io.ktor.plugin") version "3.3.0"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlinx.serialization)
+    alias(libs.plugins.ktor.plugin)
+    application
 }
 
 group = "com.sorenkai"
-version = "0.0.1"
+version = "0.1.0"
+
+kotlin {
+    jvmToolchain(24)
+    compilerOptions {
+        freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
+    }
+}
 
 application {
-    mainClass = "io.ktor.server.netty.EngineMain"
+    mainClass.set("io.ktor.server.netty.EngineMain")
+}
+
+repositories {
+    mavenCentral()
+    google()
 }
 
 dependencies {
-    implementation("io.ktor:ktor-server-core")
-    implementation("io.ktor:ktor-server-content-negotiation")
-    implementation("io.ktor:ktor-serialization-kotlinx-json")
-    implementation("io.ktor:ktor-server-host-common")
-    implementation("io.ktor:ktor-server-status-pages")
-    implementation("io.ktor:ktor-server-call-logging")
-    implementation("io.ktor:ktor-server-cors")
-    implementation("io.ktor:ktor-server-default-headers")
-    implementation("io.ktor:ktor-server-compression")
-    implementation("io.ktor:ktor-server-forwarded-header")
-    implementation("io.ktor:ktor-server-request-validation")
-    implementation("io.ktor:ktor-server-auth")
-    implementation("io.ktor:ktor-server-swagger")
-    implementation("io.ktor:ktor-server-openapi")
-    implementation("io.ktor:ktor-server-caching-headers")
-    implementation("io.ktor:ktor-server-call-id")
-    implementation("dev.hayden:khealth:3.0.2")
-    implementation("io.ktor:ktor-server-auth-jwt")
-    implementation("io.insert-koin:koin-ktor:$koin_version")
-    implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
-    implementation("io.ktor:ktor-server-metrics-micrometer")
-    implementation("io.micrometer:micrometer-registry-prometheus:$prometheus_version")
-    implementation("org.mongodb:mongodb-driver-core:$mongo_version")
-    implementation("org.mongodb:mongodb-driver-sync:$mongo_version")
-    implementation("org.mongodb:bson:$mongo_version")
-    implementation("io.ktor:ktor-server-netty")
-    implementation("ch.qos.logback:logback-classic:$logback_version")
-    implementation("io.ktor:ktor-server-config-yaml")
-    testImplementation("io.ktor:ktor-server-test-host")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+    // Ktor core
+    implementation(libs.bundles.ktor.base)
+    implementation(libs.ktor.server.swagger)
+    implementation(libs.ktor.server.openapi)
+    implementation(libs.ktor.server.caching.headers)
+    implementation(libs.ktor.server.call.id)
+    implementation(libs.ktor.server.auth.jwt)
+
+    // KotlinX, datetime, uuid
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.datetime)
+
+    // JWT
+    implementation(libs.auth0.java.jwt)
+
+    // Mongo with BOM
+    implementation(platform(libs.mongodb.bom))
+    implementation(libs.mongodb.kotlin.coroutine)
+    implementation(libs.mongodb.bson.kotlinx)
+
+    // Firebase Admin
+    implementation(libs.firebase.admin)
+
+    // DI
+    implementation(libs.koin.ktor)
+    implementation(libs.koin.logger.slf4j)
+
+    // Observability
+    implementation(libs.ktor.metrics.micrometer)
+    implementation(libs.micrometer.prometheus)
+
+    // Logging — exclude Janino (removes the CVEs)
+    implementation(libs.logback.classic) {
+        exclude(group = "org.codehaus.janino", module = "janino")
+    }
+
+    // Config YAML (optional but handy)
+    implementation(libs.ktor.server.config.yaml)
+
+    // Test
+    testImplementation(libs.ktor.server.test.host)
+    testImplementation(kotlin("test"))
+    testImplementation(libs.testcontainers)
+    testImplementation(libs.testcontainers.mongodb)
 }

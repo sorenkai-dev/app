@@ -1,0 +1,85 @@
+# gradle/libs.versions.toml
+[versions]
+kotlin = "2.2.20"
+ktor = "3.3.0"
+koin = "3.5.6"
+prometheus = "1.13.6"
+mongo-bom = "5.6.0"
+firebase-admin = "9.6.0"
+logback = "1.5.13"
+kotlinx-serialization = "1.9.0"
+kotlinx-datetime = "0.7.1"
+testcontainers = "1.20.2"
+
+[libraries]
+# Ktor (server) – versions are optional because io.ktor.plugin can manage them.
+ktor-server-core                = { module = "io.ktor:ktor-server-core" }
+ktor-server-netty               = { module = "io.ktor:ktor-server-netty" }
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation" }
+ktor-serialization-json         = { module = "io.ktor:ktor-serialization-kotlinx-json" }
+ktor-server-status-pages        = { module = "io.ktor:ktor-server-status-pages" }
+ktor-server-call-logging        = { module = "io.ktor:ktor-server-call-logging" }
+ktor-server-default-headers     = { module = "io.ktor:ktor-server-default-headers" }
+ktor-server-cors                = { module = "io.ktor:ktor-server-cors" }
+ktor-server-compression         = { module = "io.ktor:ktor-server-compression" }
+ktor-server-forwarded-header    = { module = "io.ktor:ktor-server-forwarded-header" }
+ktor-server-request-validation  = { module = "io.ktor:ktor-server-request-validation" }
+ktor-server-auth                = { module = "io.ktor:ktor-server-auth" }
+ktor-server-swagger             = { module = "io.ktor:ktor-server-swagger" }
+ktor-server-openapi             = { module = "io.ktor:ktor-server-openapi" }
+ktor-server-test-host           = { module = "io.ktor:ktor-server-test-host" }
+ktor-server-config-yaml         = { module = "io.ktor:ktor-server-config-yaml" }
+ktor-server-caching-headers     = { module = "io.ktor:ktor-server-caching-headers" }
+ktor-server-call-id             = { module = "io.ktor:ktor-server-call-id" }
+ktor-server-auth-jwt            = { module = "io.ktor:ktor-server-auth-jwt" }
+
+# KotlinX
+kotlinx-serialization-json     = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+kotlinx-datetime               = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+
+# JWT impl used by Ktor’s JWT auth
+auth0-java-jwt             = { module = "com.auth0:java-jwt", version = "4.4.0" }
+
+# Mongo (use BOM for alignment)
+mongodb-bom                    = { module = "org.mongodb:mongodb-driver-bom", version.ref = "mongo-bom" }
+mongodb-kotlin-coroutine       = { module = "org.mongodb:mongodb-driver-kotlin-coroutine" }
+mongodb-bson-kotlinx           = { module = "org.mongodb:bson-kotlinx" }
+
+# Firebase
+firebase-admin                 = { module = "com.google.firebase:firebase-admin", version.ref = "firebase-admin" }
+
+# Koin
+koin-ktor                      = { module = "io.insert-koin:koin-ktor", version.ref = "koin" }
+koin-logger-slf4j              = { module = "io.insert-koin:koin-logger-slf4j", version.ref = "koin" }
+
+# Observability
+ktor-metrics-micrometer        = { module = "io.ktor:ktor-server-metrics-micrometer" }
+micrometer-prometheus          = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheus" }
+
+# Logging (secure)
+logback-classic                = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
+# Testcontainers
+testcontainers                 = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
+testcontainers-mongodb         = { module = "org.testcontainers:mongodb", version.ref = "testcontainers" }
+
+[bundles]
+ktor-base = [
+  "ktor-server-core",
+  "ktor-server-netty",
+  "ktor-server-content-negotiation",
+  "ktor-serialization-json",
+  "ktor-server-status-pages",
+  "ktor-server-call-logging",
+  "ktor-server-default-headers",
+  "ktor-server-cors",
+  "ktor-server-compression",
+  "ktor-server-forwarded-header",
+  "ktor-server-request-validation",
+  "ktor-server-auth"
+]
+
+[plugins]
+kotlin-jvm       = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ktor-plugin      = { id = "io.ktor.plugin", version.ref = "ktor" }

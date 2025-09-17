@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongo-restore
+  labels:
+    app: sorenkai-api
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: sorenkai-api
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: mongorestore
+          image: mongo:7.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: sorenkai-api-secrets
+                  key: MONGODB_URI
+            - name: RESTORE_TS
+              value: "CHANGE_ME_TO_TIMESTAMP_DIR"  # e.g., 20250115-020001
+          volumeMounts:
+            - name: backups
+              mountPath: /backups
+          command: ["bash", "-lc"]
+          args:
+            - |
+              set -euo pipefail
+              SRC_DIR="/backups/${RESTORE_TS}"
+              if [ ! -d "$SRC_DIR" ]; then
+                echo "Restore source directory does not exist: $SRC_DIR" >&2
+                exit 1
+              fi
+              echo "[restore] Restoring from $SRC_DIR"
+              mongorestore --uri="$MONGODB_URI" --drop "$SRC_DIR"
+      volumes:
+        - name: backups
+          persistentVolumeClaim:
+            claimName: mongo-backups

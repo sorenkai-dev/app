@@ -1,0 +1,77 @@
+name: sorenkai
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sorenkai/backend:dev
+    env_file:
+      - .env
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      PORT: ${PORT:-8080}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:8080}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+
+      # ---- Mongo ----
+      MONGODB_URI: ${MONGODB_URI:-mongodb://sorenkai:sorenkai@mongo:27017/sorenkai?authSource=admin&retryWrites=false}
+
+      # ---- Firebase ----
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-sorenkai}
+      # RTDB URL (primary) with compatibility alias
+      FIREBASE_RTDB_URL: ${FIREBASE_RTDB_URL:-${FIREBASE_DATABASE_URL:-https://sorenkai-default-rtdb.firebaseio.com}}
+      FIREBASE_DATABASE_URL: ${FIREBASE_DATABASE_URL:-https://sorenkai-default-rtdb.firebaseio.com}
+      # Point to the secrets directory inside the container (our code will locate the JSON file within)
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets
+
+      # ---- Rate limiting (dev defaults) ----
+      RATE_POST_WINDOW_SECONDS: ${RATE_POST_WINDOW_SECONDS:-60}
+      RATE_POST_LIMIT: ${RATE_POST_LIMIT:-1}
+
+      # ---- Observability ----
+      ENABLE_JVM_METRICS: ${ENABLE_JVM_METRICS:-true}
+
+    ports:
+      - "${PORT:-8080}:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+    # Use Docker secrets instead of a bind mount
+    secrets:
+      - source: firebase_sa
+        target: firebase-service-account.json   # results in /run/secrets/firebase-service-account.json
+        mode: 0440
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/healthz > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: sorenkai
+      MONGO_INITDB_ROOT_PASSWORD: sorenkai
+      MONGO_INITDB_DATABASE: sorenkai
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--username", "sorenkai", "--password", "sorenkai", "--authenticationDatabase=admin", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo_data:
+
+secrets:
+  firebase_sa:
+    file: ./secrets/sorenkai-firebase-adminsdk-fbsvc-b404631626.json

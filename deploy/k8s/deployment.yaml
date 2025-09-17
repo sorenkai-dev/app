@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sorenkai-api
+  labels:
+    app: sorenkai-api
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: sorenkai-api
+  template:
+    metadata:
+      labels:
+        app: sorenkai-api
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: api
+          image: sorenkai/backend:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: sorenkai-api-config
+                  key: ENV
+            - name: ALLOWED_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: sorenkai-api-config
+                  key: ALLOWED_ORIGINS
+            - name: MAX_UPLOAD_MB
+              valueFrom:
+                configMapKeyRef:
+                  name: sorenkai-api-config
+                  key: MAX_UPLOAD_MB
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: sorenkai-api-secrets
+                  key: MONGODB_URI
+            - name: FIREBASE_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: sorenkai-api-secrets
+                  key: FIREBASE_PROJECT_ID
+            - name: FIREBASE_RTDB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: sorenkai-api-config
+                  key: FIREBASE_RTDB_URL
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/run/secrets/google
+            - name: SHUTDOWN_GRACE_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: sorenkai-api-config
+                  key: SHUTDOWN_GRACE_SECONDS
+            - name: SHUTDOWN_TIMEOUT_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: sorenkai-api-config
+                  key: SHUTDOWN_TIMEOUT_SECONDS
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: google-sa
+              mountPath: /var/run/secrets/google
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: google-sa
+          secret:
+            secretName: sorenkai-api-google-sa

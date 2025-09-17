@@ -1,23 +1,377 @@
-openapi: "3.0.3"
+openapi: 3.0.3
 info:
-  title: "Application API"
-  description: "Application API"
-  version: "1.0.0"
+  title: SorenKai API
+  description: Backend API for stories, comments, and reports with Firebase auth.
+  version: 0.1.0
 servers:
-  - url: "http://0.0.0.0:8080"
+  - url: http://localhost:8080
 paths:
-  /:
+  /healthz:
     get:
-      description: "Hello World!"
+      summary: Health check
       responses:
-        "200":
-          description: "OK"
+        '200':
+          description: OK
           content:
-            text/plain:
+            application/json:
               schema:
-                type: "string"
-              examples:
-                Example#1:
-                  value: "Hello World!"
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+  /v1/stories:
+    get:
+      summary: List recent stories (cursor pagination)
+      parameters:
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: Opaque cursor returned by previous page
+      responses:
+        '200':
+          description: Page of stories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageStory'
+    post:
+      summary: Create a new story
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Story'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Conflict (duplicate story URL by same author)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/stories/{id}/comments:
+    get:
+      summary: List comments for a story
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Page of comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageComment'
+        '404':
+          description: Story not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+    post:
+      summary: Create a comment on a story
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Story not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/reports:
+    post:
+      summary: Create a report
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/mod/reports:
+    get:
+      summary: List reports (moderators)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [open, closed]
+            default: open
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Page of reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageReport'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Forbidden (requires MOD or ADMIN roles)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/mod/reports/{id}/close:
+    post:
+      summary: Close a report (moderators)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Closed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
 components:
-  schemas: { }
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Story:
+      type: object
+      required: [id, title, url, tags, createdAt, createdBy]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        url: { type: string, format: uri }
+        summary: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string }
+    StoryCreateRequest:
+      type: object
+      required: [title, url]
+      properties:
+        title: { type: string }
+        url: { type: string, format: uri }
+        summary: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+    Comment:
+      type: object
+      required: [id, storyId, body, createdAt, createdBy]
+      properties:
+        id: { type: string }
+        storyId: { type: string }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string }
+    CommentCreateRequest:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string }
+    Report:
+      type: object
+      required: [id, targetType, targetId, reason, createdAt, createdBy, status]
+      properties:
+        id: { type: string }
+        targetType:
+          type: string
+          enum: [STORY, COMMENT]
+        targetId: { type: string }
+        reason: { type: string }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string }
+        status:
+          type: string
+          enum: [OPEN, CLOSED]
+    ReportCreateRequest:
+      type: object
+      required: [targetType, targetId, reason]
+      properties:
+        targetType:
+          type: string
+          enum: [STORY, COMMENT]
+        targetId: { type: string }
+        reason: { type: string }
+    ApiErrorResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details:
+              type: object
+              additionalProperties:
+                type: string
+              nullable: true
+    PageStory:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Story'
+        nextCursor:
+          type: string
+          nullable: true
+    PageComment:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        nextCursor:
+          type: string
+          nullable: true
+    PageReport:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+        nextCursor:
+          type: string
+          nullable: true

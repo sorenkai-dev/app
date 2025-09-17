@@ -1,7 +1,7 @@
 ktor:
   application:
     modules:
-      - com.sorenkai.ApplicationKt.module
+      - com.sorenkai.api.AppKt.module
   deployment:
     port: 8080
 jwt:

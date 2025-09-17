@@ -34,3 +34,15 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Env File ###
+.env
+secrets/
+firebase-service-account.json
+*.keystore
+*.p12
+*.pem
+*.crt
+
+
+

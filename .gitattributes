@@ -1,0 +1,20 @@
+# Normalize line endings and keep them LF in repo
+* text=auto eol=lf
+
+# Keep Windows batch scripts with CRLF on checkout (handy for local dev)
+*.bat eol=crlf
+
+# Shell scripts and Gradle wrapper scripts should be LF
+*.sh text eol=lf
+
+# Treat these as binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.jar binary
+
+# Mark vendored stuff (keeps language stats accurate on GitHub)
+gradle/wrapper/** linguist-vendored

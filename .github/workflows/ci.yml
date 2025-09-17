@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '24'
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Show environment
+        run: |
+          java -version
+          ./gradlew -v
+
+      # Testcontainers needs Docker; it's available on ubuntu-latest by default.
+      - name: Run tests
+        env:
+          GRADLE_OPTS: -Dorg.gradle.daemon=false
+        run: ./gradlew --stacktrace --no-daemon test
+
+      - name: Upload test reports (HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-html
+          path: build/reports/tests/test
+
+      - name: Upload JUnit XML results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-xml
+          path: build/test-results/test
+
+      - name: Upload build scans/logs (if any)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-logs
+          path: |
+            **/build/*.log
+            **/.gradle/**/buildOutputCleanup*

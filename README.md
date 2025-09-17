@@ -49,6 +49,19 @@ Quick start (staging example):
 - Firebase credentials rotation: docs/runbooks/firebase-credentials-rotation.md
 - DSR (export/delete): docs/runbooks/dsr-requests.md
 
+## API lifecycle & versioning
+
+- Versioning strategy: URI-based major versions (e.g., /v1, /v2) for breaking changes. v1 is current and stable.
+- Backward-compatible changes: additive fields/endpoints may be introduced within v1; clients should ignore unknown fields.
+- Deprecation policy: when functionality is slated for removal, it will be marked `deprecated: true` in the OpenAPI spec and responses MAY include:
+  - Deprecation: true
+  - Sunset: RFC 8594 date-time of planned removal
+  - Link: rel="deprecation" to a migration guide
+- Response headers: the server includes `X-API-Version: v1` on all responses for diagnostics.
+- Removal timelines: default 90 days between deprecation announcement and removal (unless security/bugfix requires faster action).
+
+See the OpenAPI spec at src/main/resources/openapi/documentation.yaml (info section) for authoritative details.
+
 ## Testing
 
 See also Performance and Load testing below for k6-based baseline scripts.

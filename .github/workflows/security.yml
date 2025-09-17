@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  security-events: write
 
 jobs:
   trivy-image-scan:
@@ -25,6 +27,9 @@ jobs:
           distribution: 'temurin'
           java-version: '24'
           cache: 'gradle'
+
+      - name: Grant execute permission for Gradle Wrapper
+        run: chmod +x ./gradlew
 
       - name: Build fat JAR (no tests)
         run: ./gradlew --no-daemon --stacktrace buildFatJar -x test
@@ -64,6 +69,6 @@ jobs:
 
       - name: Upload SARIF to GitHub (Code Scanning)
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: ${{ always() && hashFiles('semgrep.sarif') != '' }}
         with:
           sarif_file: semgrep.sarif

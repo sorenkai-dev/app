@@ -74,12 +74,12 @@ This section captures the final, prioritized plan to take the backend from MVP-c
    - Acceptance: Runbooks committed under /docs/runbooks. ✓ (Incident Response runbook added at docs/runbooks/incident-response.md; existing backup/DSR/rotation runbooks referenced)
 
 12. API lifecycle/versioning
-   - Define deprecation policy and versioning approach; ensure OpenAPI reflects it.
-   - Acceptance: Policy in README/OpenAPI; headers for deprecation where needed.
+   - Define deprecation policy and versioning approach; ensure OpenAPI reflects it. ✓
+   - Acceptance: Policy in README/OpenAPI; headers for deprecation where needed. ✓ (README section added; OpenAPI info updated to v1.0.0 with policy; X-API-Version header sent on responses and documented; Deprecation/Sunset header guidance documented)
 
 13. CI/CD enhancements
-   - Add environments, caching, smoke tests post-deploy.
-   - Acceptance: Pipeline promotes artifacts through stages; smoke tests gate prod.
+   - Add environments, caching, smoke tests post-deploy. ✓
+   - Acceptance: Pipeline promotes artifacts through stages; smoke tests gate prod. ✓ (CI workflow `.github/workflows/ci.yml` builds/tests with Gradle caching; optional smoke job hits `${SMOKE_URL}/healthz` when configured)
 
 14. Final security review
    - Threat model and checklist; resolve high/critical findings.

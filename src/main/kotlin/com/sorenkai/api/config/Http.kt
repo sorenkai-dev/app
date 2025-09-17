@@ -70,6 +70,8 @@ fun Application.configureHttp() {
         header("X-Content-Type-Options", "nosniff")
         header("Referrer-Policy", "no-referrer")
         header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+        // Advertise current API version for client diagnostics
+        header("X-API-Version", "v1")
         if (enableHsts) {
             header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
         }

@@ -1,8 +1,18 @@
 openapi: 3.0.3
 info:
   title: SorenKai API
-  description: Backend API for stories, comments, and reports with Firebase auth.
-  version: 0.1.0
+  description: |
+    Backend API for stories, comments, and reports with Firebase auth.
+
+    API lifecycle & versioning:
+    - URI versioning: breaking changes are introduced under a new prefix (e.g., /v2). The current stable version is v1.
+    - Backward-compatible changes (additive fields/endpoints) may be added within v1.
+    - Deprecation policy: deprecated endpoints/fields will be marked `deprecated: true` in this spec and may include response headers:
+      - Deprecation: "true"
+      - Sunset: RFC 8594 date-time indicating planned removal
+      - Link: rel="deprecation" URL to migration guide
+    - Clients SHOULD ignore unknown fields and handle 409 on duplicate-safe POST retries.
+  version: 1.0.0
 servers:
   - url: http://localhost:8080
 paths:
@@ -268,6 +278,23 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  headers:
+    X-API-Version:
+      description: Current API major version for this response.
+      schema:
+        type: string
+        example: v1
+    Deprecation:
+      description: Indicates that the requested endpoint is deprecated (RFC 8594 guidance).
+      schema:
+        type: string
+        example: "true"
+    Sunset:
+      description: Date/time when the deprecated endpoint is expected to be removed (RFC 8594).
+      schema:
+        type: string
+        format: date-time
+        example: "2026-01-01T00:00:00Z"
   schemas:
     Story:
       type: object

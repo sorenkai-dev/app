@@ -42,7 +42,7 @@ jobs:
           docker build -t sorenkai/backend:ci .
 
       - name: Trivy scan image
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: 'sorenkai/backend:ci'
           format: 'table'

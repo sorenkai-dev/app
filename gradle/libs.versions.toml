@@ -8,7 +8,7 @@ mongo-bom = "5.6.0"
 firebase-admin = "9.6.0"
 logback = "1.5.18"
 kotlinx-serialization = "1.9.0"
-kotlinx-datetime = "0.7.1"
+kotlinx-datetime = "0.7.1-0.6.x-compat"
 testcontainers = "1.20.2"
 
 [libraries]

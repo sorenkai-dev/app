@@ -2,7 +2,16 @@
 
 Backend API built with Ktor 3, Kotlinx Serialization, MongoDB, and Firebase Auth.
 
-## Deployment (Kubernetes with Kustomize)
+## Deployment
+
+### Option A: Google Cloud Run (recommended, low cost)
+
+A step-by-step guide for Cloud Run + Artifact Registry + Secret Manager is available at:
+- docs/deploy/cloud-run.md
+
+This option offers scale-to-zero and minimal ops. You’ll still use MongoDB Atlas for the database.
+
+### Option B: Kubernetes with Kustomize
 
 Manifests are provided under `deploy/k8s`:
 - `deployment.yaml`: Non-root, read-only FS (tmp writable), probes to `/healthz`, env/secret wiring, zero-downtime rolling updates enabled (maxUnavailable=0, maxSurge=1), lifecycle preStop drain, and terminationGracePeriodSeconds set.
@@ -140,3 +149,11 @@ data:
 ```
 
 Then reference this ConfigMap from your Prometheus deployment/operator according to your setup.
+
+
+## Security
+
+- Vulnerability disclosure policy: see SECURITY.md
+- Threat model: docs/security/threat-model.md
+- Final security review checklist: docs/security/checklist.md
+

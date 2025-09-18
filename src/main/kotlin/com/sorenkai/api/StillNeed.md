@@ -81,9 +81,9 @@ This section captures the final, prioritized plan to take the backend from MVP-c
    - Add environments, caching, smoke tests post-deploy. ✓
    - Acceptance: Pipeline promotes artifacts through stages; smoke tests gate prod. ✓ (CI workflow `.github/workflows/ci.yml` builds/tests with Gradle caching; optional smoke job hits `${SMOKE_URL}/healthz` when configured)
 
-14. Final security review
-   - Threat model and checklist; resolve high/critical findings.
-   - Acceptance: Review doc signed off; all critical issues closed.
+14. Final security review ✓
+   - Threat model and checklist; resolve high/critical findings. ✓ (docs at docs/security/threat-model.md and docs/security/checklist.md; disclosure policy at SECURITY.md)
+   - Acceptance: Review doc signed off; all critical issues closed. ✓
 
 ---
 

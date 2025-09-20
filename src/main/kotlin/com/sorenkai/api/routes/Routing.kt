@@ -9,13 +9,48 @@ import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
-import io.ktor.server.routing.head
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.withTimeout
 
 suspend fun initRepos() {
     StoryRepository().ensureIndexes()
     com.sorenkai.api.repo.CommentRepository().ensureIndexes()
     com.sorenkai.api.repo.ReportRepository().ensureIndexes()
+}
+
+@kotlinx.serialization.Serializable
+private data class ComponentStatus(
+    val ok: Boolean,
+    val error: String? = null
+)
+
+@kotlinx.serialization.Serializable
+private data class HealthResult(
+    val ok: Boolean,
+    val components: Map<String, ComponentStatus> = emptyMap(),
+    val error: String? = null
+)
+
+private suspend fun healthStatus(): HealthResult {
+    val mongo: ComponentStatus = try {
+        withTimeout(5000) {
+            // Use a minimal command that requires no special privileges
+            val db = com.sorenkai.api.config.Mongo.db
+            db.runCommand<org.bson.BsonDocument>(org.bson.BsonDocument("ping", org.bson.BsonInt32(1)))
+            ComponentStatus(ok = true)
+        }
+    } catch (t: Throwable) {
+        val msg = t.message?.take(300) ?: t::class.simpleName ?: "error"
+        ComponentStatus(ok = false, error = msg)
+    }
+    val overallOk = mongo.ok
+    val overallErr = if (overallOk) null else "Mongo connectivity failed"
+    return HealthResult(
+        ok = overallOk,
+        components = mapOf("mongo" to mongo),
+        error = overallErr
+    )
 }
 
 fun Application.configureRouting() {
@@ -125,9 +160,17 @@ fun Application.configureRouting() {
 
         // Health endpoints
         // Primary health route renamed to avoid platform conflicts
-        get("/serverhealth") { call.respond(mapOf("ok" to true)) }
+        get("/serverhealth") {
+            val result = healthStatus()
+            val status = if (result.ok) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+            call.respond(status, result)
+        }
         // Google Cloud Run/Load Balancer default (kept)
-        get("/_ah/health") { call.respond(mapOf("ok" to true)) }
+        get("/_ah/health") {
+            val result = healthStatus()
+            val status = if (result.ok) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+            call.respond(status, result)
+        }
 
         // OpenAPI and Swagger UI (enabled by default in non-prod; override with SWAGGER_ENABLED)
         val enableDocsFlag = (System.getenv("SWAGGER_ENABLED") ?: "auto").lowercase()

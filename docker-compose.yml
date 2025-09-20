@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        MONGODB_URI: ${MONGODB_URI:-mongodb://sorenkai:sorenkai@mongo:27017/sorenkai?authSource=admin&retryWrites=false}
     image: sorenkai/backend:dev
     env_file:
       - .env

@@ -38,7 +38,7 @@ Legend: [✓] pass, [!] fail, [—] N/A
 
 ## Deployment & Runtime
 - [✓] Containers run as non-root; read-only root filesystem; dropped capabilities. Evidence: Dockerfile (non-root) and deploy/k8s/deployment.yaml securityContext.
-- [✓] Health/Readiness: /healthz probes configured. Evidence: deploy/k8s/deployment.yaml.
+- [✓] Health/Readiness: /serverhealth probes configured. Evidence: deploy/k8s/deployment.yaml.
 - [✓] Graceful shutdown: Server stop with grace/timeout; K8s preStop+terminationGracePeriod. Evidence: App.kt, deploy/k8s/deployment.yaml.
 - [✓] Zero-downtime rollout: RollingUpdate with maxUnavailable=0, maxSurge=1. Evidence: deploy/k8s/deployment.yaml.
 

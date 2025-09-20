@@ -45,7 +45,7 @@ Optionally, consider creating a separate, least-privilege service account just f
 
 ## 3) Verify
 - Check application logs: you should see "Firebase initialized for project '<projectId>'".
-- Hit `/healthz` and a representative endpoint to confirm requests are served.
+- Hit `/serverhealth` and a representative endpoint to confirm requests are served.
 - If metrics are enabled, ensure `/metrics` is reachable.
 
 ## 4) Revoke the old key

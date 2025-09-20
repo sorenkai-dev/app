@@ -8,7 +8,6 @@ mongo-bom = "5.6.0"
 firebase-admin = "9.6.0"
 logback = "1.5.13"
 kotlinx-serialization = "1.9.0"
-kotlinx-datetime = "0.7.1"
 testcontainers = "1.20.2"
 
 [libraries]
@@ -35,7 +34,6 @@ ktor-server-auth-jwt            = { module = "io.ktor:ktor-server-auth-jwt" }
 
 # KotlinX
 kotlinx-serialization-json     = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
-kotlinx-datetime               = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 
 # JWT impl used by Ktor’s JWT auth
 auth0-java-jwt             = { module = "com.auth0:java-jwt", version = "4.4.0" }

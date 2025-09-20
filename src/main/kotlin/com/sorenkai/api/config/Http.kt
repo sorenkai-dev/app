@@ -128,7 +128,7 @@ fun Application.configureHttp() {
             when {
                 path.startsWith("/legal/") ->
                     CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 6 * 60 * 60))
-                path == "/healthz" || path == "/metrics" ->
+                path == "/serverhealth" || path == "/metrics" ->
                     CachingOptions(CacheControl.NoStore(null))
                 else ->
                     CachingOptions(CacheControl.NoStore(null))

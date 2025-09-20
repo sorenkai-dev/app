@@ -35,7 +35,6 @@ dependencies {
 
     // KotlinX, datetime, uuid
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kotlinx.datetime)
 
     // JWT
     implementation(libs.auth0.java.jwt)

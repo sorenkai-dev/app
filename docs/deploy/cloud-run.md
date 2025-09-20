@@ -147,7 +147,7 @@ gcloud secrets add-iam-policy-binding $FIREBASE_SA_SECRET \
 STAGING_URL=$(gcloud run services describe $SERVICE_STG --region=$REGION --format='value(status.url)')
 
 # Health
-curl -fsS "$STAGING_URL/healthz" | jq '.'
+curl -fsS "$STAGING_URL/serverhealth" | jq '.'
 
 # Stories list
 curl -fsS "$STAGING_URL/v1/stories" | jq '.'
@@ -227,3 +227,20 @@ gcloud run deploy $SERVICE_PROD --image=$IMAGE --region=$REGION
 - Metrics: /metrics is available; integrate with a Prometheus-compatible scraper if you have one.
 - Security: Never hardcode secrets. Use Secret Manager and IAM. The app supports a secret file for Firebase via GOOGLE_APPLICATION_CREDENTIALS.
 - Future improvement: Replace service account key JSON by using Application Default Credentials with a service account attached to Cloud Run (code update needed to use ADC path). For now, the secret JSON approach is compatible with the current code.
+
+
+
+## Staging smoke test via GitHub Actions
+To verify a staged Cloud Run deployment is reachable, use the CI workflow’s optional smoke test.
+
+Ad-hoc run (no secret needed):
+- In GitHub → Actions → CI → Run workflow
+- Enter your staging base URL in the `smoke_url` input (e.g., https://your-staging-domain)
+- Run the workflow; the "Smoke Test" job will curl `${smoke_url}/serverhealth`
+
+Automated on every push:
+- Set repository secret `SMOKE_URL` to your staging base URL
+- The smoke test will execute after the build/test job on each CI run
+
+Endpoint:
+- `/serverhealth` is unauthenticated and returns a small JSON body when healthy

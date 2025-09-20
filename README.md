@@ -14,7 +14,7 @@ This option offers scale-to-zero and minimal ops. You’ll still use MongoDB Atl
 ### Option B: Kubernetes with Kustomize
 
 Manifests are provided under `deploy/k8s`:
-- `deployment.yaml`: Non-root, read-only FS (tmp writable), probes to `/healthz`, env/secret wiring, zero-downtime rolling updates enabled (maxUnavailable=0, maxSurge=1), lifecycle preStop drain, and terminationGracePeriodSeconds set.
+- `deployment.yaml`: Non-root, read-only FS (tmp writable), probes to `/serverhealth`, env/secret wiring, zero-downtime rolling updates enabled (maxUnavailable=0, maxSurge=1), lifecycle preStop drain, and terminationGracePeriodSeconds set.
 - `service.yaml`: ClusterIP service exposing port 80 -> container 8080.
 - `configmap.yaml`: Non-sensitive configuration (ENV, ALLOWED_ORIGINS, MAX_UPLOAD_MB, FIREBASE_RTDB_URL, shutdown).
 - `secrets.yaml`: Template for sensitive values (Mongo URI, Firebase project id) and Google SA secret placeholder.
@@ -157,3 +157,26 @@ Then reference this ConfigMap from your Prometheus deployment/operator according
 - Threat model: docs/security/threat-model.md
 - Final security review checklist: docs/security/checklist.md
 
+
+
+
+## Smoke test a deployed environment
+You can run a simple health smoke test against any deployed URL exposing the `/serverhealth` endpoint.
+
+Options:
+
+1) Ad-hoc via GitHub Actions (no secret required)
+- Go to the Actions tab → CI → Run workflow.
+- Provide the input "smoke_url" with your deployed base URL (e.g., https://staging.example.com) and run.
+- The optional "Smoke Test" job will curl `${smoke_url}/serverhealth` and fail if it cannot get a successful response.
+
+2) Automatic on every CI run via secret
+- Set repository secret `SMOKE_URL` to your deployed base URL.
+- On subsequent CI runs, the "Smoke Test" job will execute after build and test.
+
+Local check (example):
+- curl -fsS "http://localhost:8080/serverhealth"
+
+Notes:
+- The endpoint `/serverhealth` is unauthenticated and returns a small JSON body when the service is up.
+- The CI job targets the `staging` environment and will succeed if it receives a 2xx response.

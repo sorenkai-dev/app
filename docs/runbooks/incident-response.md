@@ -83,7 +83,7 @@ Mitigations already in place:
 Actions:
 1. If new pods fail readiness, use `kubectl describe pod` and `kubectl logs` to diagnose.
 2. If necessary, rollback: `kubectl rollout undo deployment/sorenkai-api`.
-3. Verify zero-downtime by tailing logs and probing `/healthz` during rollout.
+3. Verify zero-downtime by tailing logs and probing `/serverhealth` during rollout.
 
 ## 7) No traffic alert
 - Prometheus rule APINoTraffic may fire during off hours or if ingress misconfigured.

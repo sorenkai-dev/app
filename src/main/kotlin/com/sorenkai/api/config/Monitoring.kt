@@ -39,7 +39,7 @@ fun Application.configureMonitoring() {
         // Optionally filter out health/metrics noise:
         filter { call ->
             val p = call.request.path()
-            p != "/healthz" && p != "/metrics"
+            p != "/serverhealth" && p != "/metrics"
         }
     }
 

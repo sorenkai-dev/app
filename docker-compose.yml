@@ -47,7 +47,7 @@ services:
         mode: 0440
 
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/healthz > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/serverhealth > /dev/null || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 5

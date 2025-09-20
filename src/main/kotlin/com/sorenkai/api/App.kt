@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 fun main() {
     val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
 
-    val server = embeddedServer(Netty, port = port) {
+    val server = embeddedServer(Netty, port = port, host = "0.0.0.0") {
         // delegate to your modular setup (lives in src/main/kotlin/com/sorenkai/api/config + routes)
         module()
     }

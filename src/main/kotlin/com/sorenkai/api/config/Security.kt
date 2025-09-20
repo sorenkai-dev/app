@@ -4,7 +4,6 @@ import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
-import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -14,7 +13,6 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.bearer
 import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.util.logging.KtorSimpleLogger
@@ -45,12 +43,8 @@ fun Application.configureSecurity() {
         }
     }
 
-    // Simple health route (unauthenticated)
+    // Routes requiring authentication can be added here
     routing {
-        get("/healthz") {
-            call.respondText("ok", ContentType.Text.Plain)
-        }
-
         // Example protected route:
         authenticate("firebase") {
             get("/me") {

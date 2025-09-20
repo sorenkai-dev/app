@@ -54,7 +54,7 @@ ENV PORT=8080 \
 
 # Healthcheck: use curl (wget isn't in the base image by default)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
-  CMD curl -fsS "http://127.0.0.1:${PORT}/healthz" > /dev/null || exit 1
+  CMD curl -fsS "http://127.0.0.1:${PORT}/serverhealth" > /dev/null || exit 1
 
 # Run
 ENTRYPOINT [ "sh", "-lc", "exec java $JAVA_OPTS -jar /app/app.jar -port=${PORT}" ]

@@ -14,11 +14,14 @@ info:
     - Clients SHOULD ignore unknown fields and handle 409 on duplicate-safe POST retries.
   version: 1.0.0
 servers:
-  - url: http://localhost:8080
+  - url: https://sorenkai-api-staging-432438073502.us-central1.run.app
+    description: Staging
+  - url: https://sorenkai-api-prod-432438073502.us-central1.run.app
+    description: Production
 paths:
-  /healthz:
+  /serverhealth:
     get:
-      summary: Health check
+      summary: Server health check
       responses:
         '200':
           description: OK

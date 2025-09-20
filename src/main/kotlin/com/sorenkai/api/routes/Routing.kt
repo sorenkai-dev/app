@@ -9,6 +9,7 @@ import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
+import io.ktor.server.routing.head
 import io.ktor.server.routing.routing
 
 suspend fun initRepos() {
@@ -18,6 +19,7 @@ suspend fun initRepos() {
 }
 
 fun Application.configureRouting() {
+
     install(StatusPages) {
         // Domain-level API exceptions -> structured JSON with proper HTTP status
         exception<com.sorenkai.api.errors.ApiException> { call, e ->
@@ -117,10 +119,15 @@ fun Application.configureRouting() {
         }
     }
     routing {
-        get("/healthz") { call.respond(mapOf("ok" to true)) }
         storiesRoutes()
         reportsRoutes()
         adminRoutes()
+
+        // Health endpoints
+        // Primary health route renamed to avoid platform conflicts
+        get("/serverhealth") { call.respond(mapOf("ok" to true)) }
+        // Google Cloud Run/Load Balancer default (kept)
+        get("/_ah/health") { call.respond(mapOf("ok" to true)) }
 
         // OpenAPI and Swagger UI (enabled by default in non-prod; override with SWAGGER_ENABLED)
         val enableDocsFlag = (System.getenv("SWAGGER_ENABLED") ?: "auto").lowercase()
@@ -146,16 +153,16 @@ fun Application.configureRouting() {
                     <!doctype html>
                     <html>
                     <head>
-                      <meta charset=\"utf-8\"/>
+                      <meta charset="utf-8"/>
                       <title>SorenKai API Docs</title>
-                      <link rel=\"stylesheet\" href=\"https://unpkg.com/swagger-ui-dist@5/swagger-ui.css\" />
+                      <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
                     </head>
                     <body>
-                      <div id=\"swagger-ui\"></div>
-                      <script src=\"https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js\"></script>
+                      <div id="swagger-ui"></div>
+                      <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
                       <script>
                         window.ui = SwaggerUIBundle({
-                          url: '/openapi',
+                          url: window.location.origin + '/openapi',
                           dom_id: '#swagger-ui',
                           presets: [SwaggerUIBundle.presets.apis],
                           layout: 'BaseLayout'

@@ -62,7 +62,6 @@ jobs:
         uses: returntocorp/semgrep-action@v1
         with:
           config: p/ci
-          generateSarif: true
           publishToken: ''
         env:
           SEMGREP_APP_TOKEN: ''

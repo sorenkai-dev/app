@@ -79,11 +79,11 @@ This section captures the final, prioritized plan to take the backend from MVP-c
 
 13. CI/CD enhancements
    - Add environments, caching, smoke tests post-deploy. ✓
-   - Acceptance: Pipeline promotes artifacts through stages; smoke tests gate prod. ✓ (CI workflow `.github/workflows/ci.yml` builds/tests with Gradle caching; optional smoke job hits `${SMOKE_URL}/healthz` when configured)
+   - Acceptance: Pipeline promotes artifacts through stages; smoke tests gate prod. ✓ (CI workflow `.github/workflows/ci.yml` builds/tests with Gradle caching; optional smoke job hits `${SMOKE_URL}/serverhealth` when configured)
 
-14. Final security review
-   - Threat model and checklist; resolve high/critical findings.
-   - Acceptance: Review doc signed off; all critical issues closed.
+14. Final security review ✓
+   - Threat model and checklist; resolve high/critical findings. ✓ (docs at docs/security/threat-model.md and docs/security/checklist.md; disclosure policy at SECURITY.md)
+   - Acceptance: Review doc signed off; all critical issues closed. ✓
 
 ---
 
@@ -145,7 +145,7 @@ This section captures the final, prioritized plan to take the backend from MVP-c
      - PORT
    - Docker/Docker Compose: ✓
      - api service wires all envs; uses Docker secret for Firebase SA at /run/secrets
-     - Healthcheck uses curl to hit /healthz
+     - Healthcheck uses curl to hit /serverhealth
 
 10. Testing
    - Intent: Not “write every possible test,” but establish a solid, maintainable test suite that covers critical paths for the MVP and prevents regressions. Prioritize behavior that affects correctness, security, and availability. Aim for high confidence with pragmatic scope.

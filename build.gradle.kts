@@ -63,9 +63,17 @@ dependencies {
     // Config YAML (optional but handy)
     implementation(libs.ktor.server.config.yaml)
 
+    // Security: pin Apache Commons Lang3 to a safe version and override transitives
+    implementation(libs.commons.lang3)
+
     // Test
     testImplementation(libs.ktor.server.test.host)
     testImplementation(kotlin("test"))
     testImplementation(libs.testcontainers)
     testImplementation(libs.testcontainers.mongodb)
+}
+
+// Globally exclude vulnerable commons-lang 2.x if any transitive tries to bring it
+configurations.all {
+    exclude(group = "commons-lang", module = "commons-lang")
 }

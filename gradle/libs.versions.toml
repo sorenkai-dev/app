@@ -9,6 +9,7 @@ firebase-admin = "9.6.0"
 logback = "1.5.13"
 kotlinx-serialization = "1.9.0"
 testcontainers = "1.20.2"
+commons-lang3 = "3.18.0"
 
 [libraries]
 # Ktor (server) – versions are optional because io.ktor.plugin can manage them.
@@ -56,6 +57,9 @@ micrometer-prometheus          = { module = "io.micrometer:micrometer-registry-p
 
 # Logging (secure)
 logback-classic                = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
+# Apache Commons Lang (override any vulnerable transitive)
+commons-lang3                  = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 
 # Testcontainers
 testcontainers                 = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }

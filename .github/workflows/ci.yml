@@ -55,11 +55,14 @@ jobs:
       - name: Resolve URL
         id: resolve
         shell: bash
+        env:
+          SMOKE_URL: ${{ secrets.SMOKE_URL }}
+          INPUT_SMOKE_URL: ${{ inputs.smoke_url }}
         run: |
           set -euo pipefail
-          url="${{ secrets.SMOKE_URL }}"
+          url="$SMOKE_URL"
           if [ -z "$url" ]; then
-            url="${{ inputs.smoke_url }}"
+            url="$INPUT_SMOKE_URL"
           fi
           if [ -z "$url" ]; then
             echo "No SMOKE_URL provided via secret or workflow input. Skipping." >&2
@@ -68,7 +71,9 @@ jobs:
           echo "url=$url" >> "$GITHUB_OUTPUT"
       - name: Health check
         shell: bash
+        env:
+          RESOLVED_URL: ${{ steps.resolve.outputs.url }}
         run: |
           set -euo pipefail
-          echo "Probing ${{ steps.resolve.outputs.url }}/serverhealth"
-          curl -fsS "${{ steps.resolve.outputs.url }}/serverhealth" -H 'Accept: application/json' | sed -e 's/.*/Response: &/'
+          echo "Probing $RESOLVED_URL/serverhealth"
+          curl -fsS "$RESOLVED_URL/serverhealth" -H 'Accept: application/json' | sed -e 's/.*/Response: &/'

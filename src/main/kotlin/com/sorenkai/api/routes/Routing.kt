@@ -157,6 +157,7 @@ fun Application.configureRouting() {
         storiesRoutes()
         reportsRoutes()
         adminRoutes()
+        writingsRoutes()
 
         // Health endpoints
         // Primary health route renamed to avoid platform conflicts

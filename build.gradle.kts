@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.ktor.plugin)
+    id("org.jetbrains.kotlinx.kover") version "0.8.3"
     application
 }
 
@@ -15,6 +16,7 @@ kotlin {
     }
 }
 
+
 application {
     mainClass.set("io.ktor.server.netty.EngineMain")
 }
@@ -22,6 +24,17 @@ application {
 repositories {
     mavenCentral()
     google()
+}
+
+// Allow skipping Docker-dependent integration tests when NO_DOCKER=true (useful in CI or constrained envs)
+tasks.test {
+    val noDocker = System.getenv("NO_DOCKER")?.equals("true", ignoreCase = true) == true
+    if (noDocker) {
+        filter {
+            excludeTestsMatching("com.sorenkai.api.integration.*PaginationIntegrationTest")
+            excludeTestsMatching("com.sorenkai.api.integration.AdminRoutesIntegrationTest")
+        }
+    }
 }
 
 dependencies {

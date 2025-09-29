@@ -10,7 +10,8 @@ import com.sorenkai.api.repo.StoryRepository
 
 class StoryService(
     private val repo: StoryRepository = StoryRepository(),
-    private val limiter: RateLimiter = RtdbPostRateLimiter()
+    private val limiter: RateLimiter = RtdbPostRateLimiter(),
+    private val audit: com.sorenkai.api.repo.AuditLogRepository = com.sorenkai.api.repo.AuditLogRepository()
 ) {
     suspend fun create(uid: String, req: StoryCreateRequest): Story {
         if (!limiter.checkAndIncrement(uid)) {
@@ -26,6 +27,20 @@ class StoryService(
         val created = repo.create(story)
         // increment metric
         runCatching { Metrics.storiesCreated.increment() }
+        // audit log
+        runCatching {
+            audit.create(
+                com.sorenkai.api.model.AuditLog(
+                    entityType = com.sorenkai.api.model.AuditLog.EntityType.STORY,
+                    entityId = created.id,
+                    action = com.sorenkai.api.model.AuditLog.Action.CREATE,
+                    userId = uid,
+                    changes = mapOf("title" to created.title, "url" to created.url)
+                )
+            )
+        }.onFailure { t ->
+            io.ktor.util.logging.KtorSimpleLogger("Audit").warn("Failed to write audit log for story create: ${t.message}")
+        }
         return created
     }
 

@@ -2,7 +2,7 @@ package com.sorenkai.api.integration
 
 import com.sorenkai.api.model.Story
 import com.sorenkai.api.repo.StoryRepository
-import com.sorenkai.api.routes.writingsRoutes
+import com.sorenkai.api.routes.storiesRoutes
 import com.sorenkai.api.services.StoryService
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -45,10 +45,10 @@ class WritingsRoutesIntegrationTest {
             install(ContentNegotiation) { json() }
             val repo = InMemoryStoryRepo2()
             val svc = StoryService(repo, AllowAllLimiter)
-            routing { writingsRoutes(service = svc, enforce = false, allowedOrigins = emptySet()) }
+            routing { storiesRoutes(service = svc, enforce = false, allowedOrigins = emptySet()) }
         }
 
-        val res = client.get("/v1/writings/stories")
+        val res = client.get("/v1/stories")
         assertEquals(HttpStatusCode.OK, res.status)
         val text = runBlocking { res.bodyAsText() }
         assertTrue(text.contains("\"items\":[]"))
@@ -60,10 +60,10 @@ class WritingsRoutesIntegrationTest {
             install(ContentNegotiation) { json() }
             val repo = InMemoryStoryRepo2()
             val svc = StoryService(repo, AllowAllLimiter)
-            routing { writingsRoutes(service = svc, enforce = true, allowedOrigins = emptySet()) }
+            routing { storiesRoutes(service = svc, enforce = true, allowedOrigins = emptySet()) }
         }
 
-        val res = client.get("/v1/writings/stories")
+        val res = client.get("/v1/stories")
         assertEquals(HttpStatusCode.Unauthorized, res.status)
     }
 
@@ -73,10 +73,10 @@ class WritingsRoutesIntegrationTest {
             install(ContentNegotiation) { json() }
             val repo = InMemoryStoryRepo2()
             val svc = StoryService(repo, AllowAllLimiter)
-            routing { writingsRoutes(service = svc, enforce = true, allowedOrigins = setOf("https://allowed.example")) }
+            routing { storiesRoutes(service = svc, enforce = true, allowedOrigins = setOf("https://allowed.example")) }
         }
 
-        val res = client.get("/v1/writings/stories") {
+        val res = client.get("/v1/stories") {
             header("X-Firebase-AppCheck", "fake-token")
             header(HttpHeaders.Origin, "https://evil.example")
         }
@@ -89,10 +89,10 @@ class WritingsRoutesIntegrationTest {
             install(ContentNegotiation) { json() }
             val repo = InMemoryStoryRepo2()
             val svc = StoryService(repo, AllowAllLimiter)
-            routing { writingsRoutes(service = svc, enforce = true, allowedOrigins = setOf("https://allowed.example")) }
+            routing { storiesRoutes(service = svc, enforce = true, allowedOrigins = setOf("https://allowed.example")) }
         }
 
-        val res = client.get("/v1/writings/stories") {
+        val res = client.get("/v1/stories") {
             header("X-Firebase-AppCheck", "fake-token")
             header(HttpHeaders.Origin, "https://allowed.example")
         }

@@ -139,6 +139,16 @@ fun Application.configureRouting() {
             val body = com.sorenkai.api.dto.response.ApiErrorResponse(false, com.sorenkai.api.dto.response.ApiErrorBody(code.name, e.message ?: "Bad request"))
             call.respond(code.http, body)
         }
+        exception<com.sorenkai.api.services.DiscussionService.ValidationException> { call, e ->
+            val code = com.sorenkai.api.errors.ErrorCode.VALIDATION_FAILED
+            val body = com.sorenkai.api.dto.response.ApiErrorResponse(false, com.sorenkai.api.dto.response.ApiErrorBody(code.name, e.message ?: "Bad request"))
+            call.respond(code.http, body)
+        }
+        exception<com.sorenkai.api.services.DiscussionService.NotFoundException> { call, e ->
+            val code = com.sorenkai.api.errors.ErrorCode.NOT_FOUND
+            val body = com.sorenkai.api.dto.response.ApiErrorResponse(false, com.sorenkai.api.dto.response.ApiErrorBody(code.name, e.message ?: "Not found"))
+            call.respond(code.http, body)
+        }
 
         // Fallback: unhandled exceptions -> 500 with generic code
         exception<Throwable> { call, cause ->
@@ -157,7 +167,7 @@ fun Application.configureRouting() {
         storiesRoutes()
         reportsRoutes()
         adminRoutes()
-        writingsRoutes()
+        discussionsRoutes()
 
         // Health endpoints
         // Primary health route renamed to avoid platform conflicts

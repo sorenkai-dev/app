@@ -75,7 +75,7 @@ See the OpenAPI spec at src/main/resources/openapi/documentation.yaml (info sect
 
 See also Performance and Load testing below for k6-based baseline scripts.
 
-This repository uses a pragmatic testing approach focused on MVP-critical behavior and regression prevention (see `src/main/kotlin/com/sorenkai/api/StillNeed.md`, item 10).
+This repository uses a pragmatic testing approach focused on MVP-critical behavior and regression prevention.
 
 - Philosophy: not “every possible test,” but high-value coverage of services, core utilities, and route behaviors. Aim for solid confidence with maintainable tests.
 - Structure: test tree mirrors the main source tree.
@@ -180,3 +180,64 @@ Local check (example):
 Notes:
 - The endpoint `/serverhealth` is unauthenticated and returns a small JSON body when the service is up.
 - The CI job targets the `staging` environment and will succeed if it receives a 2xx response.
+
+
+## Local development with Docker Compose
+
+- Prerequisites: Docker Desktop.
+- Copy your Firebase service account JSON into `./secrets/` (git-ignored). The default compose file references `./secrets/sorenkai-firebase-adminsdk-fbsvc-b404631626.json`.
+- Start services:
+  - Windows PowerShell: `docker compose up --build`
+- The API will listen on http://localhost:8080.
+
+Notes:
+- Compose sets GOOGLE_APPLICATION_CREDENTIALS=/run/secrets and mounts the service account JSON as a Docker secret.
+- MongoDB runs as a local container; the API connects via MONGODB_URI.
+- Health check is available at `/serverhealth`.
+
+## API endpoints (v1)
+
+- GET /v1/stories
+  - Purpose: Writings page feed.
+  - Access control: Protected by Firebase App Check. In dev, APP_CHECK_ENFORCE=false by default; set a valid token and Origin when enabling.
+  - Defense-in-depth: Origin/Referer allowlist via ALLOWED_ORIGINS.
+- POST /v1/stories
+  - Purpose: Create a story.
+  - Access control: Requires Firebase user authentication (Authorization: Bearer <ID token>).
+- GET/POST /v1/stories/{id}/comments
+  - Purpose: List and create comments on a story.
+  - Access control: POST requires Firebase user authentication.
+- POST /v1/discussions
+  - Purpose: Create a community post or comment.
+  - Access control: Requires Firebase user authentication.
+- GET /v1/discussions[?storyId=...|parentId=...]
+  - Purpose: List root posts, posts by story, or comments by parent.
+- DELETE /v1/discussions/{id}
+  - Purpose: Delete your own post/comment.
+  - Access control: Requires Firebase user authentication (must own the item).
+
+Audit logging:
+- CREATE/DELETE actions for Stories and Discussions write to the `auditLog` collection (best-effort; failures are logged and do not crash the request).
+
+## Environment variables
+
+Core configuration:
+- PORT: Server port (default 8080)
+- MONGODB_URI: Mongo connection string. In Compose, defaults to the local `mongo` service.
+
+Firebase:
+- FIREBASE_PROJECT_ID: Project ID used by Firebase Admin initialization.
+- GOOGLE_APPLICATION_CREDENTIALS: Path to a file or directory containing the service account JSON. In Compose this is `/run/secrets`.
+- FIREBASE_RTDB_URL / FIREBASE_DATABASE_URL: Realtime Database URL used by the RTDB-based rate limiters.
+
+Frontend verification (Writings page):
+- APP_CHECK_ENFORCE: When true, GET /v1/stories requires an `X-Firebase-AppCheck` token. Default false in Compose for smooth local dev.
+- ALLOWED_ORIGINS: Comma-separated list of allowed Origin/Referer prefixes. Example: `https://app.example,https://dev.example`.
+
+Operational:
+- ENABLE_JVM_METRICS: Enable Micrometer JVM metrics (default true)
+- RATE_POST_WINDOW_SECONDS / RATE_POST_LIMIT: Rate limiting defaults for posts
+
+Testing/CI:
+- NO_DOCKER: When `true`, Gradle will skip Testcontainers-based integration tests. Useful in constrained CI runners.
+

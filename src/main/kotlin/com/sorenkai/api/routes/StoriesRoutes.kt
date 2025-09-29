@@ -15,11 +15,17 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
-fun Route.storiesRoutes(service: StoryService = StoryService(), commentService: CommentService = CommentService()) {
+fun Route.storiesRoutes(
+    service: StoryService = StoryService(),
+    commentService: CommentService = CommentService(),
+    enforce: Boolean = com.sorenkai.api.security.AppCheckSecurity.isEnforced(),
+    allowedOrigins: Set<String> = com.sorenkai.api.security.AppCheckSecurity.parseAllowedOriginsFromEnv().ifEmpty { setOf("http://localhost:8080") }
+) {
 
     route("/v1/stories") {
 
         get {
+            if (!com.sorenkai.api.security.AppCheckSecurity.enforce(call, enforce, allowedOrigins)) return@get
             val qp = call.request.queryParameters
             val pageSizeReq = qp["pageSize"]?.toIntOrNull() ?: 20
             val pageSize = pageSizeReq.coerceIn(1, 100)

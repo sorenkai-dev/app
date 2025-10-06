@@ -11,17 +11,15 @@ import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 private class FakeAdminService : AdminService(
-    storyRepo = com.sorenkai.api.repo.StoryRepository(),
-    commentRepo = com.sorenkai.api.repo.CommentRepository(),
     reportRepo = com.sorenkai.api.repo.ReportRepository()
 ) {
-    override suspend fun exportByUid(uid: String): AdminService.UserExport =
-        AdminService.UserExport(uid = uid, stories = emptyList(), comments = emptyList(), reports = emptyList())
+    override suspend fun exportByUid(uid: String): UserExport =
+        UserExport(uid = uid, reports = emptyList())
 }
 
 class AdminRoutesIntegrationTest {
@@ -66,8 +64,6 @@ class AdminRoutesIntegrationTest {
         assertEquals(HttpStatusCode.OK, res.status)
         val body = res.bodyAsText()
         assertTrue(body.contains("\"uid\":\"someone\""))
-        assertTrue(body.contains("\"stories\":["))
-        assertTrue(body.contains("\"comments\":["))
         assertTrue(body.contains("\"reports\":["))
     }
 }

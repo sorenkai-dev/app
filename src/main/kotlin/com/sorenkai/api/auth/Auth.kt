@@ -7,6 +7,40 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
 import org.slf4j.MDC
 
+/**
+ * Utilities for extracting and validating authentication/authorization
+ * information from incoming requests.
+ *
+ * Supports:
+ * - Firebase Auth token verification (via Admin SDK)
+ * - Role enforcement (`USER`, `MOD`, `ADMIN`)
+ * - Test bypass mode for local/CI testing (controlled via env/system props)
+ *
+ * Test bypass:
+ * - Enabled when ENV == "test" OR TEST_AUTH_ENABLED == "true"
+ * - Disabled in prod regardless
+ * - UID provided by TEST_AUTH_UID
+ * - Roles provided by TEST_AUTH_ROLES (comma-separated: user,mod,admin)
+ *
+ * Typical usage inside a route:
+ * ```
+ * post("/v1/writings") {
+ *   val uid = call.extractUidOrUnauthorized() ?: return@post
+ *   // proceed with uid
+ * }
+ * ```
+ */
+
+/**
+ * Resolve a test UID for bypass mode.
+ *
+ * Conditions:
+ * - Requires TEST_AUTH_UID to be set
+ * - Requires either ENV=="test" OR TEST_AUTH_ENABLED=="true"
+ * - Disabled if ENV=="prod"
+ *
+ * @return fixed UID string for tests, or null if not enabled
+ */
 private fun isProdEnv(): Boolean {
     val env = System.getenv("ENV") ?: System.getProperty("ENV")
     return env?.equals("prod", ignoreCase = true) == true
@@ -27,6 +61,14 @@ private fun testUid(): String? {
     return if (!isProdEnv() && enabled) uid else null
 }
 
+/**
+ * Resolve test roles for bypass mode.
+ *
+ * Reads TEST_AUTH_ROLES as a comma-separated list, mapping to Role enum.
+ * Defaults to [Role.USER] if missing or invalid.
+ *
+ * @return a non-empty set of roles
+ */
 private fun testRoles(): Set<Role> {
     val raw = System.getProperty("TEST_AUTH_ROLES") ?: System.getenv("TEST_AUTH_ROLES")
     if (raw.isNullOrBlank()) return setOf(Role.USER)
@@ -41,20 +83,16 @@ private fun testRoles(): Set<Role> {
 }
 
 /**
- * Extract the Firebase user UID from a `Bearer <idToken>` Authorization header.
+ * Extract the Firebase user UID from Authorization header.
  *
- * - On success: returns the UID string.
- * - On failure: sends `401 Unauthorized` and returns `null`.
+ * Behavior:
+ * - Requires "Authorization: Bearer <idToken>" header
+ * - Verifies the token using Firebase Admin SDK
+ * - On success: returns UID and populates MDC["uid"]
+ * - On failure: responds with 401 Unauthorized and returns null
  *
- * In test environments you can bypass Firebase by setting TEST_AUTH_UID (env or system property).
- *
- * Typical usage inside a route:
- * ```
- * post("/v1/stories") {
- *   val uid = call.extractUidOrUnauthorized() ?: return@post
- *   // ... proceed with uid ...
- * }
- * ```
+ * Test mode:
+ * - If TEST_AUTH_UID is set and enabled, returns that UID without verifying
  */
 suspend fun ApplicationCall.extractUidOrUnauthorized(): String? {
     val authHeader = request.headers[HttpHeaders.Authorization] ?: return unauthorizedAndNull()
@@ -82,11 +120,16 @@ suspend fun ApplicationCall.extractUidOrUnauthorized(): String? {
 }
 
 /**
- * Extract an authenticated user with roles if the Authorization header is present and valid.
- * Returns null on any failure and does not write a response. Suitable for optional auth in GETs.
- * In test environments you can bypass Firebase by setting TEST_AUTH_UID/TEST_AUTH_ROLES.
+ * Extract authenticated user and roles.
+ *
+ * - Returns [AuthUser] on success
+ * - Returns null on any failure (no response is sent)
+ * - Suitable for optional auth in GET endpoints
+ *
+ * Test mode:
+ * - Returns test UID + roles when TEST_AUTH_UID/ROLES is configured
  */
-suspend fun ApplicationCall.extractAuthUserOrNull(): AuthUser? {
+fun ApplicationCall.extractAuthUserOrNull(): AuthUser? {
     val authHeader = request.headers[HttpHeaders.Authorization] ?: return null
 
     // Test bypass (requires an Authorization header to be present to mimic auth flow)
@@ -109,7 +152,7 @@ suspend fun ApplicationCall.extractAuthUserOrNull(): AuthUser? {
 }
 
 /** Convenience: only the UID, optionally. */
-suspend fun ApplicationCall.extractUidOptional(): String? = extractAuthUserOrNull()?.uid
+fun ApplicationCall.extractUidOptional(): String? = extractAuthUserOrNull()?.uid
 
 /**
  * Require that the caller is authenticated and has at least one of the provided roles.

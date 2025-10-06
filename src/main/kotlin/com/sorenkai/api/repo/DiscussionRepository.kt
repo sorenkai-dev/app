@@ -1,7 +1,6 @@
 package com.sorenkai.api.repo
 
 import com.mongodb.client.model.Filters.eq
-import com.mongodb.client.model.IndexOptions
 import com.mongodb.client.model.Indexes.ascending
 import com.mongodb.client.model.Sorts
 import com.mongodb.kotlin.client.coroutine.MongoCollection
@@ -18,7 +17,7 @@ open class DiscussionRepository {
 
     open suspend fun ensureIndexes() {
         col.createIndex(ascending("userId"))
-        col.createIndex(ascending("storyId"))
+        col.createIndex(ascending("writingSlug"))
         col.createIndex(ascending("parentId"))
         col.createIndex(ascending("kind"))
         col.createIndex(com.mongodb.client.model.Indexes.descending("createdAt", "id"))
@@ -36,10 +35,22 @@ open class DiscussionRepository {
         return res.deletedCount > 0
     }
 
+    open suspend fun updateOwn(id: String, uid: String, body: String, hashtags: List<String>, updatedAt: Instant): Boolean {
+        val res = col.updateOne(
+            com.mongodb.client.model.Filters.and(eq("id", id), eq("userId", uid)),
+            com.mongodb.client.model.Updates.combine(
+                com.mongodb.client.model.Updates.set("body", body),
+                com.mongodb.client.model.Updates.set("hashtags", hashtags),
+                com.mongodb.client.model.Updates.set("updatedAt", updatedAt)
+            )
+        )
+        return res.matchedCount > 0 && res.modifiedCount > 0
+    }
+
     open suspend fun listRoot(pageSize: Int, cursor: String?): Pair<List<Discussion>, Cursor?> = listByFilter(eq("kind", Discussion.Kind.POST.name), pageSize, cursor)
 
-    open suspend fun listByStory(storyId: String, pageSize: Int, cursor: String?): Pair<List<Discussion>, Cursor?> =
-        listByFilter(eq("storyId", storyId), pageSize, cursor)
+    open suspend fun listByWriting(writingSlug: String, pageSize: Int, cursor: String?): Pair<List<Discussion>, Cursor?> =
+        listByFilter(eq("writingSlug", writingSlug), pageSize, cursor)
 
     open suspend fun listByParent(parentId: String, pageSize: Int, cursor: String?): Pair<List<Discussion>, Cursor?> =
         listByFilter(eq("parentId", parentId), pageSize, cursor)

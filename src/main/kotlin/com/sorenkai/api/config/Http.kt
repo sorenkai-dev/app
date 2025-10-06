@@ -1,9 +1,15 @@
 package com.sorenkai.api.config
 
+import com.sorenkai.api.dto.response.ApiErrorBody
+import com.sorenkai.api.dto.response.ApiErrorResponse
+import com.sorenkai.api.errors.ErrorCode
 import io.ktor.http.CacheControl
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.CachingOptions
 import io.ktor.server.application.Application
+import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.install
 import io.ktor.server.plugins.cachingheaders.CachingHeaders
 import io.ktor.server.plugins.compression.Compression
@@ -15,9 +21,13 @@ import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.plugins.forwardedheaders.ForwardedHeaders
 import io.ktor.server.request.path
 import io.ktor.server.response.respond
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
 
+/**
+ * Parses a comma-separated list of origins from the ALLOWED_ORIGINS environment variable
+ * and configures Ktor CORS to allow those hosts. In development (ENV != prod) and when the
+ * list is empty, anyHost() is allowed to simplify local work; in prod, no origin is allowed
+ * unless explicitly configured.
+ */
 private fun CORSConfig.allowHostsFromEnv(rawEnv: String?) {
     val items = rawEnv.orEmpty()
         .split(",")
@@ -58,11 +68,25 @@ private fun CORSConfig.allowHostsFromEnv(rawEnv: String?) {
     }
 }
 
+/**
+ * Installs common HTTP-related Ktor plugins and policies:
+ *
+ * - [ForwardedHeaders]: respect proxy/load balancer headers.
+ * - [DefaultHeaders]: secure headers (X-Frame-Options, HSTS, etc.).
+ * - Request size guard (custom plugin).
+ * - [CORS]: origins configured via ALLOWED_ORIGINS environment variable.
+ * - [Compression]: gzip/deflate.
+ * - [CachingHeaders]: disables caching by default, with exceptions for /legal pages.
+ *
+ * This centralizes all "edge HTTP" concerns (headers, CORS, compression).
+ */
 fun Application.configureHttp() {
 
     install(ForwardedHeaders) // respect X-Forwarded-* from proxy/load balancer
 
-    // Secure default headers
+    // Enable HTTP Strict Transport Security (HSTS) if:
+    // - ENABLE_HSTS=true explicitly, OR
+    // - ENV=prod (automatic in production).
     val enableHsts = (System.getenv("ENABLE_HSTS") ?: "false").equals("true", ignoreCase = true) ||
         (System.getenv("ENV")?.equals("prod", ignoreCase = true) == true)
     install(DefaultHeaders) {
@@ -80,16 +104,26 @@ fun Application.configureHttp() {
     // Lightweight request size guard (applies to all requests with Content-Length)
     val maxUploadMb = (System.getenv("MAX_UPLOAD_MB") ?: "10").toLongOrNull()?.coerceAtLeast(1) ?: 10
     val maxBytes = maxUploadMb * 1024 * 1024
-    val RequestSizeGuard = io.ktor.server.application.createApplicationPlugin("RequestSizeGuard") {
+
+    /**
+     * Custom lightweight plugin to reject requests with a `Content-Length` exceeding
+     * the configured max upload size.
+     *
+     * Configured via:
+     * - `MAX_UPLOAD_MB` env var (defaults to 10).
+     *
+     * Responds with `413 Payload Too Large` and a structured error response.
+     */
+    val requestSizeGuard = createApplicationPlugin("requestSizeGuard") {
         onCall { call ->
-            val cl = call.request.headers[io.ktor.http.HttpHeaders.ContentLength]?.toLongOrNull()
+            val cl = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
             if (cl != null && cl > maxBytes) {
                 call.respond(
-                    io.ktor.http.HttpStatusCode.PayloadTooLarge,
-                    com.sorenkai.api.dto.response.ApiErrorResponse(
+                    HttpStatusCode.PayloadTooLarge,
+                    ApiErrorResponse(
                         ok = false,
-                        error = com.sorenkai.api.dto.response.ApiErrorBody(
-                            code = com.sorenkai.api.errors.ErrorCode.TOO_LARGE.name,
+                        error = ApiErrorBody(
+                            code = ErrorCode.TOO_LARGE.name,
                             message = "Request entity too large (>${maxUploadMb} MB)",
                             details = mapOf("maxBytes" to maxBytes.toString())
                         )
@@ -99,7 +133,7 @@ fun Application.configureHttp() {
             }
         }
     }
-    install(RequestSizeGuard)
+    install(requestSizeGuard)
 
     install(CORS) {
         allowNonSimpleContentTypes = true

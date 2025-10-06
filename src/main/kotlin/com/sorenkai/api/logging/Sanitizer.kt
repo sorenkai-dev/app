@@ -1,7 +1,33 @@
 package com.sorenkai.api.logging
 
+import com.sorenkai.api.logging.Sanitizer.sanitize
+
+
 /**
- * Utilities to sanitize log messages to avoid leaking sensitive data.
+ * Utility for sanitizing log messages to prevent leaking sensitive data.
+ *
+ * This object provides regex-based replacements for common sensitive patterns
+ * such as:
+ * - Authorization headers (e.g., `Authorization: Bearer <token>`)
+ * - JSON fields containing authorization tokens
+ * - Email addresses
+ *
+ * ### Behavior:
+ * - Replaces bearer tokens with `[REDACTED]`.
+ * - Replaces email addresses with `[EMAIL REDACTED]`.
+ * - Leaves all other content untouched.
+ *
+ * ### Usage:
+ * Use [sanitize] before writing any log message that may contain
+ * user-supplied headers, JSON, or other data. This ensures that sensitive
+ * information (tokens, emails) never makes it into logs.
+ *
+ * Example:
+ * ```
+ * val raw = """Authorization: Bearer abc123"""
+ * val safe = Sanitizer.sanitize(raw)
+ * // safe == "Authorization: Bearer [REDACTED]"
+ * ```
  */
 object Sanitizer {
     // (?i) = case-insensitive; capture the header name and scheme, replace the credential with [REDACTED]
@@ -20,7 +46,10 @@ object Sanitizer {
     )
 
     /**
-     * Returns a sanitized copy of the input message with sensitive values redacted.
+     * Returns a sanitized copy of the input [message] with sensitive values redacted.
+     *
+     * @param message the raw log message, possibly containing sensitive data
+     * @return the sanitized version with tokens/emails replaced, or an empty string if null
      */
     fun sanitize(message: String?): String {
         if (message.isNullOrEmpty()) return message ?: ""

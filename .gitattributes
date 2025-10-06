@@ -18,3 +18,4 @@
 
 # Mark vendored stuff (keeps language stats accurate on GitHub)
 gradle/wrapper/** linguist-vendored
+src/test/resources/**/__snapshots__/*.json linguist-generated

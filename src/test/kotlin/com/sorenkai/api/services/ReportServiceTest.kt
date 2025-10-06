@@ -5,9 +5,8 @@ import com.sorenkai.api.model.Report
 import com.sorenkai.api.model.TargetType
 import com.sorenkai.api.rate.RateLimiter
 import com.sorenkai.api.repo.ReportRepository
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.assertEquals
 
 class ReportServiceTest {
 
@@ -40,8 +39,11 @@ class ReportServiceTest {
     fun create_rate_limited() = kotlinx.coroutines.test.runTest {
         val repo = FakeRepo()
         val service = ReportService(repo, DenyingLimiter())
-        assertFailsWith<ReportService.RateLimitedException> {
+        try {
             service.create("u1", ReportCreateRequest(TargetType.COMMENT, "id", "r"))
+            org.junit.jupiter.api.Assertions.fail("Expected RateLimitedException")
+        } catch (e: ReportService.RateLimitedException) {
+            // expected
         }
     }
 }

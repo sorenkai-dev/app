@@ -53,8 +53,6 @@ fun Route.adminRoutes(service: AdminService = AdminService()) {
                 call.respond(mapOf(
                     "ok" to true,
                     "uid" to result.uid,
-                    "storiesDeleted" to result.storiesDeleted,
-                    "commentsDeleted" to result.commentsDeleted,
                     "reportsDeleted" to result.reportsDeleted
                 ))
             }

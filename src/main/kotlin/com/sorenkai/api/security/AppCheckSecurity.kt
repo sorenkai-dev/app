@@ -5,8 +5,15 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.header
 import io.ktor.server.response.respond
 
+/**
+ * Minimal App Check enforcement utilities.
+ *
+ * In production, set APP_CHECK_ENFORCE=true to require an App Check token
+ * (placeholder verification for now) and optionally constrain requests to
+ * ALLOWED_ORIGINS. In development, enforcement can remain off.
+ */
 object AppCheckSecurity {
-    private const val AppCheckHeader = "X-Firebase-AppCheck"
+    private const val APPCHECKHEADER = "X-Firebase-AppCheck"
 
     /**
      * App Check enforcement stub:
@@ -35,7 +42,7 @@ object AppCheckSecurity {
 
         if (!enforce) return true
 
-        val token = call.request.header(AppCheckHeader)
+        val token = call.request.header(APPCHECKHEADER)
         if (token.isNullOrBlank()) {
             call.respond(
                 HttpStatusCode.Unauthorized,
@@ -55,13 +62,34 @@ object AppCheckSecurity {
         return true
     }
 
-    fun parseAllowedOriginsFromEnv(): Set<String> {
+    /**
+         * Parses ALLOWED_ORIGINS into a set of allowed URL prefixes used for Origin/Referer checks.
+         */
+        fun parseAllowedOriginsFromEnv(): Set<String> {
         val raw = System.getenv("ALLOWED_ORIGINS")?.trim().orEmpty()
         if (raw.isEmpty()) return emptySet()
         return raw.split(',').mapNotNull { it.trim().takeIf { s -> s.isNotEmpty() } }.toSet()
     }
 
-    fun isEnforced(): Boolean {
+    /**
+         * Returns true when APP_CHECK_ENFORCE is set to true (case-insensitive).
+         */
+        fun isEnforced(): Boolean {
         return (System.getenv("APP_CHECK_ENFORCE") ?: "false").equals("true", ignoreCase = true)
     }
 }
+
+// Small ergonomic extension to make route checks more readable.
+// Small ergonomic extension to make route checks more readable.
+@Suppress("unused")
+/**
+ * Enforces App Check and allowed origin checks for this call.
+ *
+ * @param enforce when true, require an App Check token (placeholder verification)
+ * @param allowedOrigins optional set of allowed Origin/Referer prefixes; empty set disables the check
+ * @return true when request may proceed; false when a response has been sent and processing should stop
+ */
+suspend fun ApplicationCall.enforceAppCheck(
+    enforce: Boolean,
+    allowedOrigins: Set<String>
+): Boolean = AppCheckSecurity.enforce(this, enforce, allowedOrigins)

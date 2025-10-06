@@ -21,18 +21,20 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
-import kotlin.test.*
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class ReportsRoutesIntegrationTest {
 
-    @BeforeTest
+    @BeforeEach
     fun setupAuthBypassUser() {
         System.setProperty("ENV", "test")
         System.setProperty("TEST_AUTH_UID", "test-user")
         System.setProperty("TEST_AUTH_ROLES", "user")
     }
 
-    @AfterTest
+    @AfterEach
     fun clearAuthBypass() {
         System.clearProperty("ENV")
         System.clearProperty("TEST_AUTH_UID")

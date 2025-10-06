@@ -5,6 +5,7 @@ import com.sorenkai.api.config.configureMonitoring
 import com.sorenkai.api.config.configureSecurity
 import com.sorenkai.api.config.configureSerialization
 import com.sorenkai.api.config.configureValidation
+import com.sorenkai.api.errors.configureExceptionMapping
 import com.sorenkai.api.routes.configureRouting
 import com.sorenkai.api.routes.initRepos
 import io.ktor.server.application.Application
@@ -14,6 +15,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+/**
+ * Application entry point.
+ *
+ * - Starts the Ktor server with the configured port and host.
+ * - Applies graceful shutdown parameters from environment variables:
+ *   - `SHUTDOWN_GRACE_SECONDS`: delay before shutdown (default: 5s).
+ *   - `SHUTDOWN_TIMEOUT_SECONDS`: maximum shutdown duration (default: 10s).
+ * - Delegates server setup to [module] for modular configuration.
+ */
 fun main() {
     val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
 
@@ -39,7 +49,21 @@ fun main() {
     server.start(wait = true)
 }
 
+/**
+ * Configures the Ktor [Application] by installing all modules and routes.
+ *
+ * Responsibilities:
+ * - Exception mapping
+ * - JSON serialization
+ * - Request validation
+ * - HTTP server configuration
+ * - Security (Firebase Auth, role enforcement, etc.)
+ * - Metrics/monitoring
+ * - API routes (reports, discussions, writings, health, docs)
+ * - Repository initialization (executed asynchronously on IO dispatcher)
+ */
 fun Application.module() {
+    configureExceptionMapping()
     configureSerialization()
     configureValidation()
     configureHttp()

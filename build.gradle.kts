@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.ktor.plugin)
-    id("org.jetbrains.kotlinx.kover") version "0.9.2"
     application
 }
 
@@ -26,8 +25,20 @@ repositories {
     google()
 }
 
+// Align Kotlin stdlib artifacts to the same version to avoid classpath conflicts during tests
+val kotlinVersion = libs.versions.kotlin.get()
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin" && requested.name.startsWith("kotlin-stdlib")) {
+            useVersion(kotlinVersion)
+            because("Align Kotlin stdlib to $kotlinVersion for consistent runtime")
+        }
+    }
+}
+
 // Allow skipping Docker-dependent integration tests when NO_DOCKER=true (useful in CI or constrained envs)
 tasks.test {
+    useJUnitPlatform()
     val noDocker = System.getenv("NO_DOCKER")?.equals("true", ignoreCase = true) == true
     if (noDocker) {
         filter {
@@ -78,12 +89,17 @@ dependencies {
 
     // Security: pin Apache Commons Lang3 to a safe version and override transitives
     implementation(libs.commons.lang3)
+    implementation(libs.commons.compress)
 
     // Test
     testImplementation(libs.ktor.server.test.host)
-    testImplementation(kotlin("test"))
     testImplementation(libs.testcontainers)
     testImplementation(libs.testcontainers.mongodb)
+    testImplementation(libs.junit.api)
+    testImplementation(libs.junit.params)
+    testRuntimeOnly(libs.junit.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 // Globally exclude vulnerable commons-lang 2.x if any transitive tries to bring it

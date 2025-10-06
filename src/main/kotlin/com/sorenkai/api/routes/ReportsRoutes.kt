@@ -17,6 +17,13 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
+/**
+ * Routes for abuse report submission and moderation.
+ *
+ * - POST /v1/reports (auth required): submit a report
+ * - GET /v1/mod/reports (MOD/ADMIN): list reports with paging
+ * - POST /v1/mod/reports/{id}/close (MOD/ADMIN): close a report
+ */
 fun Route.reportsRoutes(service: ReportService = ReportService()) {
 
     // Public reporting endpoint (auth required)
@@ -41,7 +48,7 @@ fun Route.reportsRoutes(service: ReportService = ReportService()) {
     // Moderator-only endpoints
     route("/v1/mod/reports") {
         get {
-            val user = call.requireRole(Role.MOD, Role.ADMIN) ?: return@get
+            call.requireRole(Role.MOD, Role.ADMIN) ?: return@get
             val qp = call.request.queryParameters
             val statusParam = qp["status"]?.lowercase() ?: "open"
             val status = when (statusParam) {
@@ -71,7 +78,7 @@ fun Route.reportsRoutes(service: ReportService = ReportService()) {
         }
 
         post("/{id}/close") {
-            val user = call.requireRole(Role.MOD, Role.ADMIN) ?: return@post
+            call.requireRole(Role.MOD, Role.ADMIN) ?: return@post
             val id = call.parameters["id"]
             if (id.isNullOrBlank()) {
                 return@post call.respond(

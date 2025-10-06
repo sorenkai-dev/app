@@ -1,7 +1,15 @@
 package com.sorenkai.api.rate
 
 /**
- * Rate limiter for creating reports. Uses Firebase RTDB when configured, otherwise falls back to in-memory.
+ * Rate limiter for creating abuse reports.
+ *
+ * Uses Firebase RTDB when configured via FIREBASE_RTDB_URL/FIREBASE_DATABASE_URL,
+ * otherwise falls back to a safe in-memory fixed-window implementation shared in
+ * RtdbLimiterCore.
+ *
+ * Env vars:
+ * - RATE_REPORT_WINDOW_SECONDS (default: 60)
+ * - RATE_REPORT_LIMIT (default: 5)
  */
 class RtdbReportRateLimiter(
     private val windowSeconds: Long = (System.getenv("RATE_REPORT_WINDOW_SECONDS") ?: "60").toLong(),

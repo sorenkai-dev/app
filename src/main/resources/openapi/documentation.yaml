@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: SorenKai API
   description: |
-    Backend API for stories, comments, and reports with Firebase auth.
+    Backend API for writings, discussions, and reports with Firebase Auth and App Check.
 
     API lifecycle & versioning:
     - URI versioning: breaking changes are introduced under a new prefix (e.g., /v2). The current stable version is v1.
@@ -32,9 +32,91 @@ paths:
                 properties:
                   ok:
                     type: boolean
-  /v1/stories:
+  /v1/writings:
     get:
-      summary: List recent stories (cursor pagination)
+      summary: List published writings (offset pagination)
+      security:
+        - appCheck: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 12
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Page of writing list items (metadata only)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageWritingListItem'
+        '401':
+          description: Missing App Check token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Origin not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/writings/{slug}:
+    get:
+      summary: Get a single writing by slug
+      security:
+        - appCheck: []
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Writing detail including Markdown content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WritingDetail'
+        '400':
+          description: Missing slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '401':
+          description: Missing App Check token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Origin not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/discussions:
+    get:
+      summary: List discussions
+      security:
+        - appCheck: []
       parameters:
         - in: query
           name: pageSize
@@ -47,31 +129,56 @@ paths:
           name: cursor
           schema:
             type: string
-          description: Opaque cursor returned by previous page
+            description: Opaque cursor returned by previous page
+        - in: query
+          name: writingSlug
+          schema:
+            type: string
+            nullable: true
+          description: Optional slug of a writing to filter threads
+        - in: query
+          name: parentId
+          schema:
+            type: string
+            nullable: true
+          description: Optional parent discussion id to list replies
       responses:
         '200':
-          description: Page of stories
+          description: Page of discussions
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PageStory'
+                $ref: '#/components/schemas/PageDiscussion'
+        '401':
+          description: Missing App Check token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Origin not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
     post:
-      summary: Create a new story
+      summary: Create a new discussion (post or comment)
       security:
+        - appCheck: []
         - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/StoryCreateRequest'
+              $ref: '#/components/schemas/DiscussionCreateRequest'
       responses:
         '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Story'
+                $ref: '#/components/schemas/Discussion'
         '400':
           description: Validation error
           content:
@@ -84,48 +191,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
-        '409':
-          description: Conflict (duplicate story URL by same author)
+        '403':
+          description: Origin not allowed or missing App Check
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
-  /v1/stories/{id}/comments:
-    get:
-      summary: List comments for a story
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-        - in: query
-          name: pageSize
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-        - in: query
-          name: cursor
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Page of comments
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PageComment'
         '404':
-          description: Story not found
+          description: Related writing not found (when writingSlug provided)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
-    post:
-      summary: Create a comment on a story
+  /v1/discussions/{id}:
+    patch:
+      summary: Edit own discussion
       security:
+        - appCheck: []
         - bearerAuth: []
       parameters:
         - in: path
@@ -138,14 +220,21 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CommentCreateRequest'
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
       responses:
-        '201':
-          description: Created
+        '200':
+          description: Updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Comment'
+                type: object
+                properties:
+                  ok:
+                    type: boolean
         '400':
           description: Validation error
           content:
@@ -158,8 +247,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Origin not allowed or missing App Check
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
         '404':
-          description: Story not found
+          description: Not found or not owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+    delete:
+      summary: Delete own discussion
+      security:
+        - appCheck: []
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Origin not allowed or missing App Check
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found or not owner
           content:
             application/json:
               schema:
@@ -299,43 +433,85 @@ components:
         format: date-time
         example: "2026-01-01T00:00:00Z"
   schemas:
-    Story:
+    WritingListItem:
       type: object
-      required: [id, title, url, tags, createdAt, createdBy]
+      required: [slug, title, tags, createdAt, createdBy]
       properties:
-        id: { type: string }
+        slug: { type: string }
         title: { type: string }
-        url: { type: string, format: uri }
         summary: { type: string, nullable: true }
         tags:
           type: array
           items: { type: string }
         createdAt: { type: string, format: date-time }
         createdBy: { type: string }
-    StoryCreateRequest:
+
+    PageWritingListItem:
       type: object
-      required: [title, url]
       properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WritingListItem'
+        nextOffset:
+          type: integer
+          nullable: true
+
+    WritingDetail:
+      type: object
+      required: [slug, title, body, tags, createdAt, createdBy]
+      properties:
+        slug: { type: string }
         title: { type: string }
-        url: { type: string, format: uri }
+        body: { type: string, description: "Markdown content" }
         summary: { type: string, nullable: true }
         tags:
           type: array
           items: { type: string }
-    Comment:
-      type: object
-      required: [id, storyId, body, createdAt, createdBy]
-      properties:
-        id: { type: string }
-        storyId: { type: string }
-        body: { type: string }
         createdAt: { type: string, format: date-time }
         createdBy: { type: string }
-    CommentCreateRequest:
+
+    Discussion:
       type: object
-      required: [body]
+      required: [id, kind, body, userId, createdAt]
       properties:
+        id: { type: string }
+        kind:
+          type: string
+          enum: [POST, COMMENT]
+        writingSlug:
+          type: string
+          nullable: true
+        parentId:
+          type: string
+          nullable: true
         body: { type: string }
+        userId: { type: string }
+        createdAt: { type: string, format: date-time }
+        editedAt: { type: string, format: date-time, nullable: true }
+
+    DiscussionCreateRequest:
+      type: object
+      required: [kind, body]
+      properties:
+        kind:
+          type: string
+          enum: [POST, COMMENT]
+        writingSlug: { type: string, nullable: true }
+        parentId: { type: string, nullable: true }
+        body: { type: string }
+
+    PageDiscussion:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Discussion'
+        nextCursor:
+          type: string
+          nullable: true
+
     Report:
       type: object
       required: [id, targetType, targetId, reason, createdAt, createdBy, status]
@@ -343,7 +519,7 @@ components:
         id: { type: string }
         targetType:
           type: string
-          enum: [STORY, COMMENT]
+          enum: [WRITING, DISCUSSION]
         targetId: { type: string }
         reason: { type: string }
         createdAt: { type: string, format: date-time }
@@ -351,15 +527,17 @@ components:
         status:
           type: string
           enum: [OPEN, CLOSED]
+
     ReportCreateRequest:
       type: object
       required: [targetType, targetId, reason]
       properties:
         targetType:
           type: string
-          enum: [STORY, COMMENT]
+          enum: [WRITING, DISCUSSION]
         targetId: { type: string }
         reason: { type: string }
+
     ApiErrorResponse:
       type: object
       properties:
@@ -375,26 +553,7 @@ components:
               additionalProperties:
                 type: string
               nullable: true
-    PageStory:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Story'
-        nextCursor:
-          type: string
-          nullable: true
-    PageComment:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Comment'
-        nextCursor:
-          type: string
-          nullable: true
+
     PageReport:
       type: object
       properties:
@@ -405,3 +564,4 @@ components:
         nextCursor:
           type: string
           nullable: true
+

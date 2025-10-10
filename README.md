@@ -197,27 +197,45 @@ Notes:
 
 ## API endpoints (v1)
 
-- GET /v1/stories
-  - Purpose: Writings page feed.
-  - Access control: Protected by Firebase App Check. In dev, APP_CHECK_ENFORCE=false by default; set a valid token and Origin when enabling.
-  - Defense-in-depth: Origin/Referer allowlist via ALLOWED_ORIGINS.
-- POST /v1/stories
-  - Purpose: Create a story.
-  - Access control: Requires Firebase user authentication (Authorization: Bearer <ID token>).
-- GET/POST /v1/stories/{id}/comments
-  - Purpose: List and create comments on a story.
-  - Access control: POST requires Firebase user authentication.
-- POST /v1/discussions
-  - Purpose: Create a community post or comment.
-  - Access control: Requires Firebase user authentication.
-- GET /v1/discussions[?storyId=...|parentId=...]
-  - Purpose: List root posts, posts by story, or comments by parent.
-- DELETE /v1/discussions/{id}
-  - Purpose: Delete your own post/comment.
-  - Access control: Requires Firebase user authentication (must own the item).
+Endpoints
 
-Audit logging:
-- CREATE/DELETE actions for Stories and Discussions write to the `auditLog` collection (best-effort; failures are logged and do not crash the request).
+Writings
+- GET /v1/writings
+  - List published writings. Supports limit and offset. Returns metadata only (no content). Sorted by publishedAt desc.
+  - App Check required (Origin/Referer must be in ALLOWED_ORIGINS when enforcement is on).
+- GET /v1/writings/{slug}
+  - Get a full article, including Markdown content.
+  - App Check required.
+  - No write endpoints (writings are inserted/administered manually).
+
+Discussions
+- GET /v1/discussions[?storyId=...|parentId=...]
+  - Get recent top-level posts (kind=POST) with nested comments when requested. Supports pagination (limit/cursor). Optional storyId filter to tie threads to a writing; parentId returns direct replies.
+  - App Check required.
+- POST /v1/discussions
+  - Create a new post/comment. Requires Firebase auth + App Check. Hashtags auto-extracted and audit logged.
+- PATCH /v1/discussions/{id}
+  - Edit a post/comment. Only the author may edit. Audit logged with field changes.
+- DELETE /v1/discussions/{id}
+  - Hard delete a post/comment. Only the author may delete. Audit logged.
+
+Audit Logging
+- All discussion write operations (CREATE, EDIT, DELETE) are logged to `auditLog` with schema compliance.
+
+Schemas (Mongo $jsonSchema summary)
+- Writings (WritingListItem/WritingDetail): title, slug, synopsis (optional), content (single Markdown document), status (DRAFT|PUBLISHED), coverUrl (optional; supports /images/... or https://...), authorId, publishedAt (optional), createdAt, updatedAt, stats { commentCount, viewCount, likeCount }.
+- Discussions (POST/COMMENT): body (1..5000), userId, createdAt, updatedAt, optional storyId (ObjectId) to link to a writing, optional parentId (ObjectId) for replies, likes (int, reserved), hashtags (array of strings).
+- AuditLog: entityType (DISCUSSION), entityId, action (CREATE|EDIT|DELETE), userId, timestamp, optional changes, optional ip.
+
+Security
+- Writings: read-only endpoints protected by App Check (must come from sorenkai.com).
+- Discussions: App Check on all; Firebase auth required for POST, PATCH, DELETE.
+- Admin routes (/v1/admin) and /serverhealth are stubbed/admin-only, not exposed to the frontend.
+
+Other
+- Likes exist in the discussions schema but are not wired yet.
+- Reports flow is stubbed and will be part of admin tools later.
+- Excludes any /v1/stories references (replaced by /v1/writings).
 
 ## Environment variables
 

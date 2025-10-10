@@ -1,13 +1,9 @@
 package com.sorenkai.api.repo
 
-import com.mongodb.client.model.Filters.and
-import com.mongodb.client.model.Filters.eq
-import com.mongodb.client.model.Filters.lt
-import com.mongodb.client.model.IndexOptions
+import com.mongodb.client.model.Filters.*
 import com.mongodb.client.model.Indexes.ascending
 import com.mongodb.client.model.Indexes.descending
 import com.mongodb.client.model.Sorts.orderBy
-import com.mongodb.client.model.Sorts.descending as sortDesc
 import com.mongodb.kotlin.client.coroutine.MongoCollection
 import com.sorenkai.api.config.Mongo
 import com.sorenkai.api.dto.paging.Cursor
@@ -17,6 +13,7 @@ import com.sorenkai.api.model.ReportStatus
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import kotlin.time.Instant
+import com.mongodb.client.model.Sorts.descending as sortDesc
 
 open class ReportRepository {
     private val col: MongoCollection<Report> by lazy { Mongo.db.getCollection("reports") }

@@ -1,10 +1,11 @@
 package com.sorenkai.api.integration
 
 import com.sorenkai.api.model.Discussion
-import com.sorenkai.api.model.Story
+import com.sorenkai.api.model.Writing
+import com.sorenkai.api.rate.RateLimiter
 import com.sorenkai.api.repo.AuditLogRepository
 import com.sorenkai.api.repo.DiscussionRepository
-import com.sorenkai.api.repo.StoryRepository
+import com.sorenkai.api.repo.WritingRepository
 import com.sorenkai.api.routes.discussionsRoutes
 import com.sorenkai.api.services.DiscussionService
 import io.ktor.client.request.delete
@@ -20,11 +21,15 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.routing.routing
 import io.ktor.server.response.respondText
+import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
-import kotlin.test.*
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 private class InMemoryDiscussionRepo : DiscussionRepository() {
     val items = mutableListOf<Discussion>()
@@ -50,18 +55,20 @@ private class InMemoryDiscussionRepo : DiscussionRepository() {
     override suspend fun listRoot(pageSize: Int, cursor: String?) =
         (items.filter { it.kind == Discussion.Kind.POST }.take(pageSize)) to null
 
-    override suspend fun listByStory(storyId: String, pageSize: Int, cursor: String?) =
-        (items.filter { it.storyId == storyId }.take(pageSize)) to null
+    override suspend fun listByWriting(writingSlug: String, pageSize: Int, cursor: String?) =
+        (items.filter { it.writingSlug == writingSlug }.take(pageSize)) to null
 
     override suspend fun listByParent(parentId: String, pageSize: Int, cursor: String?) =
         (items.filter { it.parentId == parentId }.take(pageSize)) to null
 }
 
-private class InMemoryStoryRepo3 : StoryRepository() {
-    val items = mutableListOf<Story>()
+private class InMemoryWritingRepo : WritingRepository() {
+    val items = mutableListOf<Writing>()
+
     override suspend fun ensureIndexes() {}
-    override suspend fun create(story: Story): Story { items.add(story); return story }
-    override suspend fun findById(id: String): Story? = items.find { it.id == id }
+
+    override suspend fun getPublishedBySlug(slug: String): Writing? =
+        items.find { it.slug == slug && it.status == Writing.Status.PUBLISHED }
 }
 
 private class RecordingAuditRepo : AuditLogRepository() {
@@ -80,14 +87,14 @@ private class FailingAuditRepo : AuditLogRepository() {
 
 class DiscussionsRoutesIntegrationTest {
 
-    @BeforeTest
+    @BeforeEach
     fun setupAuthBypass() {
         System.setProperty("ENV", "test")
         System.setProperty("TEST_AUTH_UID", "test-user")
         System.setProperty("TEST_AUTH_ROLES", "user")
     }
 
-    @AfterTest
+    @AfterEach
     fun clearAuthBypass() {
         System.clearProperty("ENV")
         System.clearProperty("TEST_AUTH_UID")
@@ -99,19 +106,19 @@ class DiscussionsRoutesIntegrationTest {
         application {
             install(ContentNegotiation) { json() }
             install(io.ktor.server.plugins.statuspages.StatusPages) {
-                exception<com.sorenkai.api.services.DiscussionService.ValidationException> { call, _ ->
+                exception<DiscussionService.ValidationException> { call, _ ->
                     val status = com.sorenkai.api.errors.ErrorCode.VALIDATION_FAILED.http
-                    call.respondText("{\"ok\":false}", io.ktor.http.ContentType.Application.Json, status)
+                    call.respondText("{\"ok\":false}", ContentType.Application.Json, status)
                 }
-                exception<com.sorenkai.api.services.DiscussionService.NotFoundException> { call, _ ->
+                exception<DiscussionService.NotFoundException> { call, _ ->
                     val status = com.sorenkai.api.errors.ErrorCode.NOT_FOUND.http
-                    call.respondText("{\"ok\":false}", io.ktor.http.ContentType.Application.Json, status)
+                    call.respondText("{\"ok\":false}", ContentType.Application.Json, status)
                 }
             }
             val dRepo = InMemoryDiscussionRepo()
-            val sRepo = InMemoryStoryRepo3()
+            val wRepo = InMemoryWritingRepo()
             val aRepo = RecordingAuditRepo()
-            val svc = DiscussionService(dRepo, sRepo, aRepo)
+            val svc = DiscussionService(dRepo, wRepo, aRepo)
             routing { discussionsRoutes(svc) }
         }
         val res = client.post("/v1/discussions") {
@@ -128,7 +135,7 @@ class DiscussionsRoutesIntegrationTest {
     fun `POST discussions with empty body returns 400`() = testApplication {
         application {
             install(ContentNegotiation) { json() }
-            val svc = DiscussionService(InMemoryDiscussionRepo(), InMemoryStoryRepo3(), RecordingAuditRepo())
+            val svc = DiscussionService(InMemoryDiscussionRepo(), InMemoryWritingRepo(), RecordingAuditRepo())
             routing { discussionsRoutes(svc) }
         }
         val res = client.post("/v1/discussions") {
@@ -145,7 +152,7 @@ class DiscussionsRoutesIntegrationTest {
     fun `POST comment without parentId returns 400`() = testApplication {
         application {
             install(ContentNegotiation) { json() }
-            val svc = DiscussionService(InMemoryDiscussionRepo(), InMemoryStoryRepo3(), RecordingAuditRepo())
+            val svc = DiscussionService(InMemoryDiscussionRepo(), InMemoryWritingRepo(), RecordingAuditRepo())
             routing { discussionsRoutes(svc) }
         }
         val res = client.post("/v1/discussions") {
@@ -157,16 +164,16 @@ class DiscussionsRoutesIntegrationTest {
     }
 
     @Test
-    fun `POST post with non-existent storyId returns 404`() = testApplication {
+    fun `POST post with non-existent writingSlug returns 404`() = testApplication {
         application {
             install(ContentNegotiation) { json() }
-            val svc = DiscussionService(InMemoryDiscussionRepo(), InMemoryStoryRepo3(), RecordingAuditRepo())
+            val svc = DiscussionService(InMemoryDiscussionRepo(), InMemoryWritingRepo(), RecordingAuditRepo())
             routing { discussionsRoutes(svc) }
         }
         val res = client.post("/v1/discussions") {
             header(HttpHeaders.Authorization, "Bearer test")
             contentType(ContentType.Application.Json)
-            setBody("""{"kind":"POST","body":"x","storyId":"nope"}""")
+            setBody("""{"kind":"POST","body":"x","writingSlug":"nope"}""")
         }
         assertEquals(HttpStatusCode.NotFound, res.status)
     }
@@ -176,7 +183,7 @@ class DiscussionsRoutesIntegrationTest {
         application {
             install(ContentNegotiation) { json() }
             val dRepo = InMemoryDiscussionRepo()
-            val svc = DiscussionService(dRepo, InMemoryStoryRepo3(), RecordingAuditRepo())
+            val svc = DiscussionService(dRepo, InMemoryWritingRepo(), RecordingAuditRepo())
             routing { discussionsRoutes(svc) }
             // seed two posts and one comment
             runBlocking {
@@ -202,7 +209,7 @@ class DiscussionsRoutesIntegrationTest {
             install(ContentNegotiation) { json() }
             val dRepo = InMemoryDiscussionRepo()
             val audit = RecordingAuditRepo()
-            val svc = DiscussionService(dRepo, InMemoryStoryRepo3(), audit)
+            val svc = DiscussionService(dRepo, InMemoryWritingRepo(), audit)
             routing { discussionsRoutes(svc) }
             // seed owned discussion
             runBlocking { dRepo.create(Discussion(kind = Discussion.Kind.POST, userId = "test-user", body = "p1")) }
@@ -218,7 +225,7 @@ class DiscussionsRoutesIntegrationTest {
         application {
             install(ContentNegotiation) { json() }
             val dRepo = InMemoryDiscussionRepo()
-            val svc = DiscussionService(dRepo, InMemoryStoryRepo3(), RecordingAuditRepo())
+            val svc = DiscussionService(dRepo, InMemoryWritingRepo(), RecordingAuditRepo())
             routing { discussionsRoutes(svc) }
             runBlocking { dRepo.create(Discussion(kind = Discussion.Kind.POST, userId = "other", body = "p1")) }
         }
@@ -232,7 +239,14 @@ class DiscussionsRoutesIntegrationTest {
     fun `audit failure does not crash request`() = testApplication {
         application {
             install(ContentNegotiation) { json() }
-            val svc = DiscussionService(InMemoryDiscussionRepo(), InMemoryStoryRepo3(), FailingAuditRepo())
+            val svc = DiscussionService(
+                InMemoryDiscussionRepo(),
+                InMemoryWritingRepo(),
+                FailingAuditRepo(),
+                postLimiter = object : RateLimiter {
+                    override suspend fun checkAndIncrement(uid: String) = true
+                }
+            )
             routing { discussionsRoutes(svc) }
         }
         val res = client.post("/v1/discussions") {

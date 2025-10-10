@@ -10,28 +10,106 @@ import org.bson.codecs.kotlinx.KotlinSerializerCodecProvider
 import org.bson.codecs.pojo.PojoCodecProvider
 
 
+/**
+ * Singleton for MongoDB access with sane defaults for Kindred/SorenKai backend.
+ *
+ * Responsibilities:
+ * - Provides a lazily initialized [MongoClient] configured with:
+ *   - Connection string from `MONGODB_URI` (system property or env var).
+ *   - Standard UUID representation ([UuidRepresentation.STANDARD]).
+ *   - Codec registry that includes:
+ *     - Kotlinx Serialization support (via [KotlinSerializerCodecProvider]).
+ *     - POJO codec provider for automatic mapping of common types.
+ * - Exposes a lazily initialized [MongoDatabase] reference, defaulting to
+ *   the database name parsed from the URI or `"sorenkai"` if unspecified.
+ *
+ * Environment variables / system properties:
+ * - `MONGODB_URI`: full MongoDB connection string.
+ *   Examples:
+ *     - `mongodb://user:pass@host:27017/sorenkai?retryWrites=false`
+ *     - `mongodb+srv://cluster0.mongodb.net/sorenkai`
+ *
+ * Thread safety:
+ * - Uses Kotlin’s `by lazy` delegates for safe, on-demand initialization.
+ *
+ * Usage example:
+ * ```
+ * val collection = Mongo.db.getCollection("discussions")
+ * ```
+ */
 object Mongo {
+
+    // Visible for tests: snapshot of applied settings (non-sensitive)
+    @Volatile
+    internal var settingsSnapshot: Map<String, String> = emptyMap()
+
+    /**
+     * Lazily created [MongoClient] instance with configured pool sizes and timeouts.
+     *
+     * Falls back to `mongodb://localhost:27017/sorenkai?retryWrites=false` if no URI is provided.
+     */
     private val client: MongoClient by lazy {
         val uri = System.getProperty("MONGODB_URI")?.takeIf { it.isNotBlank() }
             ?: System.getenv("MONGODB_URI")
             ?: "mongodb://localhost:27017/sorenkai?retryWrites=false"
+
+        val maxPool = (System.getenv("MONGO_MAX_POOL_SIZE") ?: "50").toIntOrNull() ?: 50
+        val minPool = (System.getenv("MONGO_MIN_POOL_SIZE") ?: "0").toIntOrNull() ?: 0
+        val waitQueueMs = (System.getenv("MONGO_WAIT_QUEUE_MS") ?: "5000").toIntOrNull() ?: 5000
+        val connectTimeoutMs = (System.getenv("MONGO_CONNECT_TIMEOUT_MS") ?: "3000").toIntOrNull() ?: 3000
+        val socketTimeoutMs = (System.getenv("MONGO_SOCKET_TIMEOUT_MS") ?: "5000").toIntOrNull() ?: 5000
+        val serverSelectionMs = (System.getenv("MONGO_SERVER_SELECTION_MS") ?: "3000").toIntOrNull() ?: 3000
+        val retryWrites = (System.getenv("MONGO_RETRY_WRITES") ?: "true").equals("true", ignoreCase = true)
+
         val pojo = PojoCodecProvider.builder().automatic(true).build()
         val codecs = CodecRegistries.fromProviders(
             KotlinSerializerCodecProvider(), // uses kotlinx-serialization (bson-kotlinx)
             pojo
         )
+        val baseRegistry = CodecRegistries.fromRegistries(
+            MongoClientSettings.getDefaultCodecRegistry(), codecs
+        )
+
         val settings = MongoClientSettings.builder()
             .applyConnectionString(ConnectionString(uri))
             .uuidRepresentation(UuidRepresentation.STANDARD)
-            .codecRegistry(CodecRegistries.fromRegistries(
-                MongoClientSettings.getDefaultCodecRegistry(), codecs
-            ))
+            .codecRegistry(baseRegistry)
+            .applyToConnectionPoolSettings { b ->
+                b.maxSize(maxPool)
+                b.minSize(minPool)
+                b.maxWaitTime(waitQueueMs.toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
+            }
+            .applyToSocketSettings { b ->
+                b.connectTimeout(connectTimeoutMs.toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
+                b.readTimeout(socketTimeoutMs.toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
+            }
+            .applyToClusterSettings { b ->
+                b.serverSelectionTimeout(serverSelectionMs.toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
+            }
+            .retryWrites(retryWrites)
             .build()
+
+        // Update test-visible snapshot (no secrets)
+        settingsSnapshot = mapOf(
+            "maxPool" to maxPool.toString(),
+            "minPool" to minPool.toString(),
+            "waitQueueMs" to waitQueueMs.toString(),
+            "connectTimeoutMs" to connectTimeoutMs.toString(),
+            "socketTimeoutMs" to socketTimeoutMs.toString(),
+            "serverSelectionMs" to serverSelectionMs.toString(),
+            "retryWrites" to retryWrites.toString()
+        )
+
         MongoClient.create(settings)
     }
 
+    /**
+     * Lazily created [MongoDatabase] reference.
+     *
+     * Database name is resolved from the connection string, defaulting to `"sorenkai"`
+     * if not explicitly included.
+     */
     val db: MongoDatabase by lazy {
-        // database name comes from connection string; if absent, use "sorenkai"
         val uri = System.getProperty("MONGODB_URI")?.takeIf { it.isNotBlank() }
             ?: System.getenv("MONGODB_URI")?.takeIf { it.isNotBlank() }
             ?: "mongodb://localhost:27017/sorenkai?retryWrites=false"
@@ -39,4 +117,5 @@ object Mongo {
         val dbName = cs.database ?: "sorenkai"
         client.getDatabase(dbName)
     }
+
 }

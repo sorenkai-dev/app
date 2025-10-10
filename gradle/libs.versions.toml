@@ -8,8 +8,11 @@ mongo-bom = "5.6.0"
 firebase-admin = "9.7.0"
 logback = "1.5.18"
 kotlinx-serialization = "1.9.0"
-testcontainers = "1.20.2"
+coroutines = "1.9.0"
+testcontainers = "1.21.3"
 commons-lang3 = "3.19.0"
+commons-compress = "1.28.0"
+junit5 = "6.0.0"
 
 [libraries]
 # Ktor (server) – versions are optional because io.ktor.plugin can manage them.
@@ -37,7 +40,9 @@ ktor-server-auth-jwt            = { module = "io.ktor:ktor-server-auth-jwt" }
 kotlinx-serialization-json     = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
 # JWT impl used by Ktor’s JWT auth
-auth0-java-jwt             = { module = "com.auth0:java-jwt", version = "4.5.0" }
+auth0-java-jwt             = { module = "com.auth0:java-jwt", version = "4.4.0" }
+# Google API Client for HTTPS fetching
+google-api-client           = { module = "com.google.api-client:google-api-client", version = "2.2.0" }
 
 # Mongo (use BOM for alignment)
 mongodb-bom                    = { module = "org.mongodb:mongodb-driver-bom", version.ref = "mongo-bom" }
@@ -60,10 +65,18 @@ logback-classic                = { module = "ch.qos.logback:logback-classic", ve
 
 # Apache Commons Lang (override any vulnerable transitive)
 commons-lang3                  = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
+commons-compress               = { module = "org.apache.commons:commons-compress", version.ref = "commons-compress" }
 
 # Testcontainers
 testcontainers                 = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-mongodb         = { module = "org.testcontainers:mongodb", version.ref = "testcontainers" }
+
+# Testing
+junit-api                      = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit5" }
+junit-params                   = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit5" }
+junit-engine                   = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit5" }
+junit-platform-launcher        = { module = "org.junit.platform:junit-platform-launcher", version = "junit5" }
+kotlinx-coroutines-test        = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 
 [bundles]
 ktor-base = [

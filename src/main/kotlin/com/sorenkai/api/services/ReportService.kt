@@ -9,10 +9,20 @@ import com.sorenkai.api.rate.RateLimiter
 import com.sorenkai.api.rate.RtdbReportRateLimiter
 import com.sorenkai.api.repo.ReportRepository
 
+/**
+ * Application service for creating and moderating abuse reports.
+ *
+ * Applies a fixed-window rate limit per user via injected RateLimiter before
+ * persisting a new report.
+ */
 class ReportService(
     private val repo: ReportRepository = ReportRepository(),
     private val limiter: RateLimiter = RtdbReportRateLimiter()
 ) {
+    /**
+     * Creates a new report authored by uid. Throws [RateLimitedException]
+     * when the per-user rate limit is exceeded.
+     */
     suspend fun create(uid: String, req: ReportCreateRequest): Report {
         if (!limiter.checkAndIncrement(uid)) {
             throw RateLimitedException("Too many reports in a short period")

@@ -2,6 +2,17 @@ package com.sorenkai.api.errors
 
 import io.ktor.http.HttpStatusCode
 
+/**
+ * Standardized error codes for API responses.
+ *
+ * Each code maps directly to an [HttpStatusCode] to ensure consistency
+ * between domain exceptions and HTTP responses.
+ *
+ * These codes are used by [ApiException] and surfaced in
+ * [com.sorenkai.api.dto.response.ApiErrorResponse].
+ *
+ * @property http the corresponding HTTP status to return for this error
+ */
 enum class ErrorCode(val http: HttpStatusCode) {
     UNAUTHORIZED(HttpStatusCode.Unauthorized),
     FORBIDDEN(HttpStatusCode.Forbidden),

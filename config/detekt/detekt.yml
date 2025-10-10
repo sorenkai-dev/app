@@ -1,0 +1,11 @@
+build:
+  maxIssues: 0
+
+style:
+  UnusedPrivateMember:
+    active: true
+    ignoreAnnotated: ['Test', 'Composable']
+
+naming:
+  FunctionNaming:
+    active: false

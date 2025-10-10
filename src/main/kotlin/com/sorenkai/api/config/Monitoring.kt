@@ -18,8 +18,38 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.slf4j.event.Level
 
 /**
- * CallId + CallLogging + Micrometer/Prometheus + /metrics route
- */
+ * Configures application monitoring and observability.
+ *
+ * Installs the following Ktor plugins and instrumentation:
+ *
+ * 1. **CallId**
+ *    - Generates a per-request unique ID (32 chars) if `X-Request-ID` is not provided.
+ *    - Adds the ID to MDC for structured logging.
+ *
+ * 2. **CallLogging**
+ *    - Logs incoming requests and responses at INFO level.
+ *    - Enriches logs with MDC fields: `method`, `path`, `status`, and `X-Request-ID`.
+ *    - Filters out noise from `/serverhealth` and `/metrics` endpoints.
+ *
+ * 3. **Micrometer Metrics**
+ *    - Sets up a Prometheus registry ([PrometheusMeterRegistry]).
+ *    - Collects HTTP server metrics (request counts, latencies, status codes).
+ *    - Initializes custom counters via [Metrics.init]:
+ *        - `stories_created_total`
+ *        - `comments_created_total`
+ *        - `reports_created_total`
+ *
+ * 4. metrics endpoint**
+ *    - Exposes Prometheus scrape data at `GET /metrics` in plain text format.
+ *    - Intended for Prometheus/Grafana integration.
+ *
+ * Example usage:
+ * ```
+ * fun Application.module() {
+ *     configureMonitoring()
+ * }
+ * ```
+ **/
 fun Application.configureMonitoring() {
 
     // Request ID

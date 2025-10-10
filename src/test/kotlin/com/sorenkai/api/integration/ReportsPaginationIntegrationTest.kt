@@ -19,13 +19,16 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.utility.DockerImageName
-import kotlin.test.*
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertNotNull
 
 class ReportsPaginationIntegrationTest {
 
     private lateinit var mongo: MongoDBContainer
 
-    @BeforeTest
+    @BeforeEach
     fun setup() {
         // Auth as moderator for listing endpoint
         System.setProperty("ENV", "test")
@@ -36,7 +39,7 @@ class ReportsPaginationIntegrationTest {
         System.setProperty("MONGODB_URI", mongo.replicaSetUrl)
     }
 
-    @AfterTest
+    @AfterEach
     fun tearDown() {
         System.clearProperty("ENV")
         System.clearProperty("TEST_AUTH_UID")

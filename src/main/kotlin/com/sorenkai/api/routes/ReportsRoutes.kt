@@ -1,6 +1,5 @@
 package com.sorenkai.api.routes
 
-import com.sorenkai.api.auth.Role
 import com.sorenkai.api.auth.extractUidOrUnauthorized
 import com.sorenkai.api.auth.requireRole
 import com.sorenkai.api.dto.ReportCreateRequest
@@ -8,6 +7,7 @@ import com.sorenkai.api.dto.ReportResponse
 import com.sorenkai.api.dto.paging.Page
 import com.sorenkai.api.dto.paging.encode
 import com.sorenkai.api.model.ReportStatus
+import com.sorenkai.api.model.Role
 import com.sorenkai.api.services.ReportService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -17,10 +17,24 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
+/**
+ * Routes for abuse report submission and moderation.
+ *
+ * - POST /v1/reports (auth required): submit a report
+ * - GET /v1/mod/reports (MOD/ADMIN): list reports with paging
+ * - POST /v1/mod/reports/{id}/close (MOD/ADMIN): close a report
+ */
 fun Route.reportsRoutes(service: ReportService = ReportService()) {
 
     // Public reporting endpoint (auth required)
     post("/v1/reports") {
+        // Enforce App Check + Origin allowlist
+        if (!com.sorenkai.api.security.AppCheckSecurity.enforce(
+                call,
+                com.sorenkai.api.security.AppCheckSecurity.isEnforced(),
+                com.sorenkai.api.security.AppCheckSecurity.parseAllowedOriginsFromEnv()
+            )) return@post
+
         val uid = call.extractUidOrUnauthorized() ?: return@post
         val req = call.receive<ReportCreateRequest>()
         val created = service.create(uid, req)
@@ -41,7 +55,13 @@ fun Route.reportsRoutes(service: ReportService = ReportService()) {
     // Moderator-only endpoints
     route("/v1/mod/reports") {
         get {
-            val user = call.requireRole(Role.MOD, Role.ADMIN) ?: return@get
+            // Enforce App Check + Origin allowlist
+            if (!com.sorenkai.api.security.AppCheckSecurity.enforce(
+                    call,
+                    com.sorenkai.api.security.AppCheckSecurity.isEnforced(),
+                    com.sorenkai.api.security.AppCheckSecurity.parseAllowedOriginsFromEnv()
+                )) return@get
+            call.requireRole(Role.MOD, Role.ADMIN) ?: return@get
             val qp = call.request.queryParameters
             val statusParam = qp["status"]?.lowercase() ?: "open"
             val status = when (statusParam) {
@@ -71,7 +91,13 @@ fun Route.reportsRoutes(service: ReportService = ReportService()) {
         }
 
         post("/{id}/close") {
-            val user = call.requireRole(Role.MOD, Role.ADMIN) ?: return@post
+            // Enforce App Check + Origin allowlist
+            if (!com.sorenkai.api.security.AppCheckSecurity.enforce(
+                    call,
+                    com.sorenkai.api.security.AppCheckSecurity.isEnforced(),
+                    com.sorenkai.api.security.AppCheckSecurity.parseAllowedOriginsFromEnv()
+                )) return@post
+            call.requireRole(Role.MOD, Role.ADMIN) ?: return@post
             val id = call.parameters["id"]
             if (id.isNullOrBlank()) {
                 return@post call.respond(

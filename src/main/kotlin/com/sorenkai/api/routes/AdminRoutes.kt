@@ -1,7 +1,7 @@
 package com.sorenkai.api.routes
 
-import com.sorenkai.api.auth.Role
 import com.sorenkai.api.auth.requireRole
+import com.sorenkai.api.model.Role
 import com.sorenkai.api.services.AdminService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
@@ -14,6 +14,12 @@ fun Route.adminRoutes(service: AdminService = AdminService()) {
     route("/v1/admin") {
         route("/users/{uid}") {
             get("/export") {
+                // Enforce App Check + Origin allowlist
+                if (!com.sorenkai.api.security.AppCheckSecurity.enforce(
+                        call,
+                        com.sorenkai.api.security.AppCheckSecurity.isEnforced(),
+                        com.sorenkai.api.security.AppCheckSecurity.parseAllowedOriginsFromEnv()
+                    )) return@get
                 if (call.requireRole(Role.ADMIN) == null) return@get
                 val uid = call.parameters["uid"]
                 if (uid.isNullOrBlank()) {
@@ -34,6 +40,12 @@ fun Route.adminRoutes(service: AdminService = AdminService()) {
             }
 
             post("/delete") {
+                // Enforce App Check + Origin allowlist
+                if (!com.sorenkai.api.security.AppCheckSecurity.enforce(
+                        call,
+                        com.sorenkai.api.security.AppCheckSecurity.isEnforced(),
+                        com.sorenkai.api.security.AppCheckSecurity.parseAllowedOriginsFromEnv()
+                    )) return@post
                 if (call.requireRole(Role.ADMIN) == null) return@post
                 val uid = call.parameters["uid"]
                 if (uid.isNullOrBlank()) {

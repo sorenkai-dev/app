@@ -10,10 +10,16 @@ import io.ktor.server.routing.get
 /**
  * Defines routes for health checks.
  *
- * - `/serverhealth`: primary endpoint for human/monitoring checks.
- *
+ * - `/healthz`: lightweight liveness probe (no dependencies)
+ * - `/serverhealth`: readiness check (includes Mongo ping)
  */
 fun Routing.healthRoutes() {
+    // Liveness: simple OK response, no dependencies
+    get("/healthz") {
+        call.respond(HttpStatusCode.OK, mapOf("ok" to true))
+    }
+
+    // Readiness: include Mongo ping
     get("/serverhealth") {
         val checks = listOf(MongoHealthCheck())
         val results = checks.associateBy({ it.name }, { it.check() })
@@ -23,5 +29,4 @@ fun Routing.healthRoutes() {
             HealthResult(ok = overallOk, components = results)
         )
     }
-
 }

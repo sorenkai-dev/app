@@ -12,6 +12,7 @@ import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.plugins.requestvalidation.RequestValidationException
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
+import io.ktor.server.plugins.callid.callId
 
 /**
  * Configures global exception handling for the API.
@@ -58,7 +59,8 @@ fun Application.configureExceptionMapping() {
                     code = e.code.name,
                     message = e.message,
                     details = e.details
-                )
+                ),
+                requestId = call.callId
             )
             call.respond(e.code.http, body)
         }
@@ -73,7 +75,8 @@ fun Application.configureExceptionMapping() {
                     code = code.name,
                     message = "Validation failed",
                     details = details
-                )
+                ),
+                requestId = call.callId
             )
             call.respond(code.http, body)
         }
@@ -88,7 +91,8 @@ fun Application.configureExceptionMapping() {
                     code = code.name,
                     message = message,
                     details = null
-                )
+                ),
+                requestId = call.callId
             )
             call.respond(code.http, body)
         }
@@ -102,7 +106,8 @@ fun Application.configureExceptionMapping() {
                     code = code.name,
                     message = message,
                     details = null
-                )
+                ),
+                requestId = call.callId
             )
             call.respond(code.http, body)
         }
@@ -110,29 +115,40 @@ fun Application.configureExceptionMapping() {
         // Service-level common exceptions
         exception<RateLimitedException> { call, e ->
             val code = ErrorCode.RATE_LIMITED
-            val body = ApiErrorResponse(false,
-                ApiErrorBody(code.name, e.message ?: "Rate limited")
+            val body = ApiErrorResponse(
+                ok = false,
+                error = ApiErrorBody(code.name, e.message ?: "Rate limited"),
+                requestId = call.callId
             )
+            // Suggest a default retry-after of 30 seconds if not specified by the service
+            call.response.headers.append("Retry-After", "30", safeOnly = false)
             call.respond(code.http, body)
         }
         exception<com.sorenkai.api.services.DiscussionService.RateLimitedException> { call, e ->
             val code = ErrorCode.RATE_LIMITED
-            val body = ApiErrorResponse(false,
-                ApiErrorBody(code.name, e.message ?: "Rate limited")
+            val body = ApiErrorResponse(
+                ok = false,
+                error = ApiErrorBody(code.name, e.message ?: "Rate limited"),
+                requestId = call.callId
             )
+            call.response.headers.append("Retry-After", "30", safeOnly = false)
             call.respond(code.http, body)
         }
         exception<ValidationException> { call, e ->
             val code = ErrorCode.VALIDATION_FAILED
-            val body = ApiErrorResponse(false,
-                ApiErrorBody(code.name, e.message ?: "Bad request")
+            val body = ApiErrorResponse(
+                ok = false,
+                error = ApiErrorBody(code.name, e.message ?: "Bad request"),
+                requestId = call.callId
             )
             call.respond(code.http, body)
         }
         exception<NotFoundException> { call, e ->
             val code = ErrorCode.NOT_FOUND
-            val body = ApiErrorResponse(false,
-                ApiErrorBody(code.name, e.message ?: "Not found")
+            val body = ApiErrorResponse(
+                ok = false,
+                error = ApiErrorBody(code.name, e.message ?: "Not found"),
+                requestId = call.callId
             )
             call.respond(code.http, body)
         }
@@ -144,8 +160,9 @@ fun Application.configureExceptionMapping() {
                 ok = false,
                 error = ApiErrorBody(
                     code = code.name,
-                    message = cause.message ?: "Internal server error"
-                )
+                    message = "Internal server error."
+                ),
+                requestId = call.callId
             )
             call.respond(code.http, body)
         }

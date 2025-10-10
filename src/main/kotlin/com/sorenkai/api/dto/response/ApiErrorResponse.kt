@@ -1,5 +1,7 @@
 package com.sorenkai.api.dto.response
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
 /**
@@ -13,6 +15,8 @@ import kotlinx.serialization.Serializable
  *   success envelopes that may return `{ "ok": true, ... }`.
  * @property error The structured [ApiErrorBody] describing the failure,
  *   including machine-readable code, human-readable message, and optional details.
+ * @property requestId Optional request/correlation ID. Included when available.
+ *   Not encoded when null (to preserve existing snapshots/tests).
  *
  * ### Example JSON
  * ```json
@@ -22,12 +26,16 @@ import kotlinx.serialization.Serializable
  *     "code": "UNAUTHORIZED",
  *     "message": "Unauthorized",
  *     "details": null
- *   }
+ *   },
+ *   "requestId": "abc123"
  * }
  * ```
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class ApiErrorResponse(
     val ok: Boolean = false,
-    val error: ApiErrorBody
+    val error: ApiErrorBody,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val requestId: String? = null
 )

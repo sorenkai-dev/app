@@ -1,6 +1,8 @@
 package com.sorenkai.api.auth
 
 import com.google.firebase.auth.FirebaseAuth
+import com.sorenkai.api.model.AuthUser
+import com.sorenkai.api.model.Role
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
@@ -111,7 +113,9 @@ suspend fun ApplicationCall.extractUidOrUnauthorized(): String? {
 
     val token = parts[1]
     return try {
-        val decoded = FirebaseAuth.getInstance().verifyIdToken(token)
+        val decoded = kotlinx.coroutines.withTimeout(3000) {
+            FirebaseAuth.getInstance().verifyIdToken(token)
+        }
         MDC.put("uid", decoded.uid)
         decoded.uid
     } catch (_: Throwable) {

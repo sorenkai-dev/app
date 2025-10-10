@@ -23,33 +23,45 @@ import io.ktor.server.request.path
 import io.ktor.server.response.respond
 
 /**
- * Parses a comma-separated list of origins from the ALLOWED_ORIGINS environment variable
- * and configures Ktor CORS to allow those hosts. In development (ENV != prod) and when the
- * list is empty, anyHost() is allowed to simplify local work; in prod, no origin is allowed
- * unless explicitly configured.
+ * Configures Cross-Origin Resource Sharing (CORS) based on the `ALLOWED_ORIGINS` environment variable.
+ *
+ * This function parses a comma-separated list of allowed origins and registers them with Ktor’s
+ * [CORSConfig.allowHost] method. Schemes (`https`, `http`) are normalized for each entry:
+ * - `https://` origins are always allowed as-is.
+ * - `http://` origins are upgraded to HTTPS in production (`ENV=prod`) and allowed as HTTP only in
+ *   development or staging environments.
+ *
+ * Behavior by environment:
+ * - **Production (`ENV=prod`)** → Only explicitly listed HTTPS origins are allowed. No defaults.
+ * - **Non-production** → If `ALLOWED_ORIGINS` is empty, `anyHost()` is permitted to simplify local testing.
+ *
+ * This ensures secure, restrictive CORS in production while maintaining flexibility during development.
+ *
+ * @param rawEnv The raw value of the `ALLOWED_ORIGINS` environment variable, containing comma-separated origins.
  */
+
 private fun CORSConfig.allowHostsFromEnv(rawEnv: String?) {
     val items = rawEnv.orEmpty()
         .split(",")
         .map { it.trim() }
         .filter { it.isNotEmpty() }
 
+    val isProd = System.getenv("ENV")?.equals("prod", ignoreCase = true) == true
+
     if (items.isEmpty()) {
-        val isProd = System.getenv("ENV")?.equals("prod", ignoreCase = true) == true
         if (isProd) {
-            // In prod, do NOT allow any origin by default. Require ALLOWED_ORIGINS to be set.
+            // No origins set → default to secure lockdown
             return
         } else {
-            anyHost() // dev only; tighten in prod by setting ALLOWED_ORIGINS
+            anyHost() // dev only
             return
         }
     }
 
     items.forEach { raw ->
         var hostPort = raw
-        var schemes: List<String> = listOf("https", "http")
+        var schemes: List<String> = listOf("https")
 
-        // Normalize input: strip scheme and path if provided
         when {
             raw.startsWith("https://", ignoreCase = true) -> {
                 hostPort = raw.removePrefix("https://")
@@ -57,13 +69,11 @@ private fun CORSConfig.allowHostsFromEnv(rawEnv: String?) {
             }
             raw.startsWith("http://", ignoreCase = true) -> {
                 hostPort = raw.removePrefix("http://")
-                schemes = listOf("http")
+                schemes = if (isProd) listOf("https") else listOf("http", "https")
             }
         }
-        // Drop any path/query accidentally included
-        hostPort = hostPort.substringBefore("/") // keep host[:port] only
 
-        // Ktor allowHost supports wildcards like "*.example.com" and explicit ports like "localhost:5173"
+        hostPort = hostPort.substringBefore("/") // drop path/query
         allowHost(hostPort, schemes = schemes)
     }
 }
@@ -136,13 +146,29 @@ fun Application.configureHttp() {
     install(requestSizeGuard)
 
     install(CORS) {
+        // Allow only necessary headers
         allowNonSimpleContentTypes = true
-        allowHeaders { true }
+        allowHeaders {
+            when (it.lowercase()) {
+                HttpHeaders.ContentType.lowercase(),
+                HttpHeaders.Authorization.lowercase(),
+                "x-firebase-appcheck",
+                HttpHeaders.Accept.lowercase(),
+                HttpHeaders.Origin.lowercase(),
+                HttpHeaders.UserAgent.lowercase() -> true
+                else -> false
+            }
+        }
+        // Allow only necessary methods (GET is simple and allowed by default)
+        allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Put)
         allowMethod(HttpMethod.Patch)
         allowMethod(HttpMethod.Delete)
         allowMethod(HttpMethod.Options)
-        allowCredentials = true
+
+        // Disable credentials in production
+        val isProd = System.getenv("ENV")?.equals("prod", ignoreCase = true) == true
+        allowCredentials = !isProd
         maxAgeInSeconds = 3600
 
         // From env: e.g. "http://localhost:5173, https://sorenkai.com, https://www.sorenkai.com"

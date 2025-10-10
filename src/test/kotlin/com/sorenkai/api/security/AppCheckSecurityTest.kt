@@ -65,7 +65,7 @@ class AppCheckSecurityTest {
     }
 
     @Test
-    fun `enforce true with token and allowed origin returns 200`() = testApplication {
+    fun `enforce true with invalid token returns 401`() = testApplication {
         application {
             install(ContentNegotiation) { json() }
             routing {
@@ -79,6 +79,6 @@ class AppCheckSecurityTest {
             header("X-Firebase-AppCheck", "fake-token")
             header(HttpHeaders.Origin, "https://allowed.example")
         }
-        assertEquals(HttpStatusCode.OK, res.status)
+        assertEquals(HttpStatusCode.Unauthorized, res.status)
     }
 }

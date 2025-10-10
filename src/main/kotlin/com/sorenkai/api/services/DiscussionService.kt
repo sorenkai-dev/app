@@ -78,8 +78,7 @@ class DiscussionService(
                     changes = emptyMap()
                 )
             )
-        }.onFailure {
-        t ->
+        }.onFailure { t ->
             io.ktor.util.logging.KtorSimpleLogger("Audit").warn("Failed to write audit log for discussion create: ${t.message}")
         }
         return created
@@ -133,6 +132,8 @@ class DiscussionService(
     }
 
     suspend fun listRoot(pageSize: Int, cursor: String?): Pair<List<Discussion>, Cursor?> = repo.listRoot(pageSize, cursor)
+
     suspend fun listByWriting(writingSlug: String, pageSize: Int, cursor: String?) = repo.listByWriting(writingSlug, pageSize, cursor)
+
     suspend fun listByParent(parentId: String, pageSize: Int, cursor: String?): Pair<List<Discussion>, Cursor?> = repo.listByParent(parentId, pageSize, cursor)
 }

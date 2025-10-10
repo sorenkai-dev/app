@@ -103,7 +103,18 @@ fun Application.configureSecurity() {
 private fun ensureFirebase() {
     if (FirebaseApp.getApps().isNotEmpty()) return
 
-    val credsPathOrJson = System.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    val env = System.getenv("ENV") ?: System.getProperty("ENV")
+    val isProd = env?.equals("prod", ignoreCase = true) == true
+    val isTest = env?.equals("test", ignoreCase = true) == true
+    val testBypass = (System.getProperty("TEST_AUTH_ENABLED") ?: System.getenv("TEST_AUTH_ENABLED") ?: "false").equals("true", true)
+    val credsEnv = System.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+    if (isTest || testBypass || (!isProd && credsEnv.isNullOrBlank())) {
+        securityLog.info("Skipping Firebase initialization (test or non-prod without credentials)")
+        return
+    }
+
+    val credsPathOrJson = credsEnv
         ?: error("GOOGLE_APPLICATION_CREDENTIALS env var is required")
 
     val credentials = when {

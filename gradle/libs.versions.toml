@@ -42,7 +42,7 @@ kotlinx-serialization-json     = { module = "org.jetbrains.kotlinx:kotlinx-seria
 # JWT impl used by Ktor’s JWT auth
 auth0-java-jwt             = { module = "com.auth0:java-jwt", version = "4.4.0" }
 # Google API Client for HTTPS fetching
-google-api-client           = { module = "com.google.api-client:google-api-client", version = "2.2.0" }
+google-api-client           = { module = "com.google.api-client:google-api-client", version = "2.8.1" }
 
 # Mongo (use BOM for alignment)
 mongodb-bom                    = { module = "org.mongodb:mongodb-driver-bom", version.ref = "mongo-bom" }

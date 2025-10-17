@@ -1,7 +1,10 @@
 package com.sorenkai.api.dto
 
+import com.sorenkai.api.model.Writing
+import com.sorenkai.api.model.Writing.Status
+import kotlinx.datetime.Instant
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
 
 /**
  * Lightweight summary of a published writing.
@@ -33,9 +36,11 @@ data class WritingListItem(
     val title: String,
     val slug: String,
     val synopsis: String? = null,
-    val coverUrl: String? = null,
-    val publishedAt: Instant? = null,
-    val updatedAt: Instant? = null
+    val status: Status,
+    val type: Writing.Type,
+    val salesLink: String? = null,
+    @Contextual val createdAt: Instant,
+    @Contextual val updatedAt: Instant
 )
 
 /**
@@ -81,13 +86,15 @@ data class WritingDetail(
     val title: String,
     val slug: String,
     val synopsis: String? = null,
+    val type: Writing.Type,
+    val salesLink: String? = null,
     val content: String,
-    val status: com.sorenkai.api.model.Writing.Status,
+    val status: Status,
     val coverUrl: String? = null,
     val authorId: String,
-    val publishedAt: Instant? = null,
-    val createdAt: Instant,
-    val updatedAt: Instant,
+    @Contextual val publishedAt: Instant? = null,
+    @Contextual val createdAt: Instant,
+    @Contextual val updatedAt: Instant,
     val stats: Stats
 ) {
     @Serializable

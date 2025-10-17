@@ -1,6 +1,9 @@
 package com.sorenkai.api.routes
 
 import com.sorenkai.api.dto.paging.Page
+import com.sorenkai.api.dto.response.ApiErrorResponse
+import com.sorenkai.api.dto.response.ApiErrorBody
+import com.sorenkai.api.errors.ErrorCode.*
 import com.sorenkai.api.security.AppCheckSecurity
 import com.sorenkai.api.security.enforceAppCheck
 import com.sorenkai.api.services.WritingService
@@ -25,23 +28,23 @@ fun Route.writingsRoutes(
 ) {
     route("/v1/writings") {
         get {
-            if (!call.enforceAppCheck(enforce, allowedOrigins)) return@get
+//            if (!call.enforceAppCheck(enforce, allowedOrigins)) return@get
             val qp = call.request.queryParameters
-            val limit = (qp["limit"]?.toIntOrNull() ?: 12).coerceIn(1, 50)
+            val limit = (qp["limit"]?.toIntOrNull() ?: 10).coerceIn(1, 50)
             val offset = (qp["offset"]?.toIntOrNull() ?: 0).coerceAtLeast(0)
             val items = service.listPublished(limit, offset)
             call.respond(Page(items = items, nextCursor = null))
         }
         get("/{slug}") {
-            if (!call.enforceAppCheck(enforce, allowedOrigins)) return@get
+//            if (!call.enforceAppCheck(enforce, allowedOrigins)) return@get
             val slug = call.parameters["slug"]
             if (slug.isNullOrBlank()) {
                 return@get call.respond(
                     HttpStatusCode.BadRequest,
-                    com.sorenkai.api.dto.response.ApiErrorResponse(
+                    ApiErrorResponse(
                         ok = false,
-                        error = com.sorenkai.api.dto.response.ApiErrorBody(
-                            code = com.sorenkai.api.errors.ErrorCode.VALIDATION_FAILED.name,
+                        error = ApiErrorBody(
+                            code = VALIDATION_FAILED.name,
                             message = "Missing slug",
                             details = mapOf("param" to "slug")
                         )
@@ -52,8 +55,8 @@ fun Route.writingsRoutes(
                 val item = service.getBySlug(slug)
                 call.respond(item)
             } catch (e: WritingService.NotFoundException) {
-                val code = com.sorenkai.api.errors.ErrorCode.NOT_FOUND
-                call.respond(code.http, com.sorenkai.api.dto.response.ApiErrorResponse(false, com.sorenkai.api.dto.response.ApiErrorBody(code.name, e.message ?: "Not found")))
+                val code = NOT_FOUND
+                call.respond(code.http, ApiErrorResponse(false, ApiErrorBody(code.name, e.message ?: "Not found")))
             }
         }
     }

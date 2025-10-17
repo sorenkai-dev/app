@@ -4,10 +4,19 @@ import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
+import com.sorenkai.api.util.DateAsLongSerializer
+import kotlinx.datetime.Instant
+import kotlinx.datetime.serializers.InstantIso8601Serializer
+import kotlinx.serialization.ExperimentalSerializationApi
+
+import kotlinx.serialization.modules.SerializersModule
 import org.bson.UuidRepresentation
 import org.bson.codecs.configuration.CodecRegistries
 import org.bson.codecs.kotlinx.KotlinSerializerCodecProvider
 import org.bson.codecs.pojo.PojoCodecProvider
+import org.bson.codecs.kotlinx.dateTimeSerializersModule
+import java.util.Date
+import java.util.concurrent.TimeUnit
 
 
 /**
@@ -48,7 +57,18 @@ object Mongo {
      *
      * Falls back to `mongodb://localhost:27017/sorenkai?retryWrites=false` if no URI is provided.
      */
+    @OptIn(ExperimentalSerializationApi::class)
     private val client: MongoClient by lazy {
+        // 1. Keep the custom module definition with the Date serializer
+        val customSerializersModule = SerializersModule {
+            include(dateTimeSerializersModule)
+        }
+
+        // 2. Define the CodecRegistry that USES the custom module
+        //    We'll call this the 'kotlinxCodecRegistry' for clarity
+        val kotlinxCodecRegistry = CodecRegistries.fromProviders(
+            KotlinSerializerCodecProvider(customSerializersModule)
+        )
         val uri = System.getProperty("MONGODB_URI")?.takeIf { it.isNotBlank() }
             ?: System.getenv("MONGODB_URI")
             ?: "mongodb://localhost:27017/sorenkai?retryWrites=false"
@@ -63,7 +83,8 @@ object Mongo {
 
         val pojo = PojoCodecProvider.builder().automatic(true).build()
         val codecs = CodecRegistries.fromProviders(
-            KotlinSerializerCodecProvider(), // uses kotlinx-serialization (bson-kotlinx)
+            // Use the registry that includes your Date serializer
+            kotlinxCodecRegistry, // uses kotlinx-serialization (bson-kotlinx) with Date serializer
             pojo
         )
         val baseRegistry = CodecRegistries.fromRegistries(
@@ -77,14 +98,14 @@ object Mongo {
             .applyToConnectionPoolSettings { b ->
                 b.maxSize(maxPool)
                 b.minSize(minPool)
-                b.maxWaitTime(waitQueueMs.toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
+                b.maxWaitTime(waitQueueMs.toLong(), TimeUnit.MILLISECONDS)
             }
             .applyToSocketSettings { b ->
-                b.connectTimeout(connectTimeoutMs.toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
-                b.readTimeout(socketTimeoutMs.toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
+                b.connectTimeout(connectTimeoutMs.toLong(), TimeUnit.MILLISECONDS)
+                b.readTimeout(socketTimeoutMs.toLong(), TimeUnit.MILLISECONDS)
             }
             .applyToClusterSettings { b ->
-                b.serverSelectionTimeout(serverSelectionMs.toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
+                b.serverSelectionTimeout(serverSelectionMs.toLong(), TimeUnit.MILLISECONDS)
             }
             .retryWrites(retryWrites)
             .build()

@@ -1,8 +1,11 @@
 package com.sorenkai.api.services
 
+import com.google.cloud.firestore.Precondition.updatedAt
 import com.sorenkai.api.dto.WritingDetail
 import com.sorenkai.api.dto.WritingListItem
+import com.sorenkai.api.model.Writing
 import com.sorenkai.api.repo.WritingRepository
+import io.ktor.server.engine.applicationEnvironment
 
 /**
  * Application service for read-only access to published writings.
@@ -21,14 +24,17 @@ class WritingService(
      * @param offset starting offset; negative values coerced to 0
      */
     suspend fun listPublished(limit: Int, offset: Int): List<WritingListItem> {
+        applicationEnvironment().log.info("\n\n -------- \n\n Entering WritingService.listPublished \n\n ------")
         val docs = repo.listPublished(limit.coerceIn(1, 50), offset.coerceAtLeast(0))
         return docs.map {
             WritingListItem(
                 title = it.title,
                 slug = it.slug,
                 synopsis = it.synopsis,
-                coverUrl = it.coverUrl,
-                publishedAt = it.publishedAt,
+                status = enumValueOf<Writing.Status>(it.status.name.uppercase()),
+                type = enumValueOf<Writing.Type>(it.type.name),
+                salesLink = it.salesLink,
+                createdAt = it.createdAt,
                 updatedAt = it.updatedAt
             )
         }
@@ -45,8 +51,10 @@ class WritingService(
             title = doc.title,
             slug = doc.slug,
             synopsis = doc.synopsis,
-            content = doc.content,
-            status = doc.status,
+            type = enumValueOf<Writing.Type>(doc.type.name),
+            salesLink = doc.salesLink,
+            content = doc.content!!,
+            status = enumValueOf<Writing.Status>(doc.status.name),
             coverUrl = doc.coverUrl,
             authorId = doc.authorId,
             publishedAt = doc.publishedAt,

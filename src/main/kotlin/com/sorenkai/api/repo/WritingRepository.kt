@@ -2,8 +2,10 @@ package com.sorenkai.api.repo
 
 import com.mongodb.client.model.Filters.eq
 import com.mongodb.client.model.Filters.and
+import com.mongodb.client.model.Filters.or
 import com.mongodb.client.model.IndexOptions
 import com.mongodb.client.model.Indexes.ascending
+import com.mongodb.client.model.Projections
 import com.mongodb.client.model.Sorts
 import com.mongodb.kotlin.client.coroutine.MongoCollection
 import com.sorenkai.api.config.Mongo
@@ -36,8 +38,16 @@ open class WritingRepository {
     open suspend fun listPublished(limit: Int, offset: Int): List<Writing> {
         val size = limit.coerceIn(1, 50)
         val skip = offset.coerceAtLeast(0)
-        return col.find(eq("status", Writing.Status.PUBLISHED.name))
-            .sort(Sorts.orderBy(Sorts.descending("publishedAt"), Sorts.descending("id")))
+
+        val filter = or(
+            eq("status", Writing.Status.PUBLISHED.name),
+            eq("status",Writing.Status.SUBMITTED.name)
+        )
+
+        return col.find(filter)
+            .projection(Projections.exclude("content"))
+            .sort(Sorts.orderBy(Sorts.descending("publishedAt"),
+                Sorts.descending("id")))
             .skip(skip)
             .limit(size)
             .toList()

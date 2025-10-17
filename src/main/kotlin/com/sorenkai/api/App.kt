@@ -1,5 +1,6 @@
 package com.sorenkai.api
 
+import com.sorenkai.api.config.Mongo
 import com.sorenkai.api.config.configureHttp
 import com.sorenkai.api.config.configureMonitoring
 import com.sorenkai.api.config.configureSecurity
@@ -9,6 +10,7 @@ import com.sorenkai.api.errors.configureExceptionMapping
 import com.sorenkai.api.routes.configureRouting
 import com.sorenkai.api.routes.initRepos
 import io.ktor.server.application.Application
+import io.ktor.server.application.log
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import kotlinx.coroutines.CoroutineScope
@@ -71,6 +73,9 @@ fun Application.module() {
     configureSecurity()
     configureMonitoring()
     configureRouting()
+
+    val dbName = Mongo.db.name
+    log.info("------- \n\n Starting database $dbName \n\n -------")
     CoroutineScope(Dispatchers.IO).launch {
         runCatching { initRepos() }.onFailure {
             environment.log.warn("initRepos failed: ${'$'}{it.message}")

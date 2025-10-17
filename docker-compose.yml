@@ -38,6 +38,8 @@ services:
       # ---- Observability ----
       ENABLE_JVM_METRICS: ${ENABLE_JVM_METRICS:-true}
 
+      JAVA_OPTS: "-Djansi.passthrough=true"
+
     ports:
       - "${PORT:-8080}:8080"
     depends_on:

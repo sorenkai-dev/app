@@ -65,4 +65,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
   CMD curl -fsS "http://127.0.0.1:${PORT}/serverhealth" > /dev/null || exit 1
 
 # Run
-ENTRYPOINT [ "sh", "-lc", "exec java $JAVA_OPTS -jar /app/app.jar -port=${PORT}" ]
+ENTRYPOINT [ "sh", "-lc", "exec java -Djansi.passthrough=true $JAVA_OPTS -jar /app/app.jar -port=${PORT}" ]

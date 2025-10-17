@@ -1,7 +1,8 @@
 package com.sorenkai.api.model
 
+import kotlinx.datetime.Instant
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
 
 @Serializable
 data class Writing(
@@ -9,17 +10,22 @@ data class Writing(
     val title: String,
     val slug: String,
     val synopsis: String? = null,
-    val content: String,
+    val content: String? = null,
     val status: Status,
     val coverUrl: String? = null,
     val authorId: String,
-    val publishedAt: Instant? = null,
-    val createdAt: Instant = com.sorenkai.api.util.now(),
-    val updatedAt: Instant = com.sorenkai.api.util.now(),
-    val stats: Stats = Stats()
+    @Contextual val publishedAt: Instant? = null,
+    @Contextual val createdAt: Instant,
+    @Contextual val updatedAt: Instant,
+    val stats: Stats = Stats(),
+    val type: Type = Type.ARTICLE,
+    val salesLink: String? = null
 ) {
     @Serializable
-    enum class Status { DRAFT, PUBLISHED }
+    enum class Status { DRAFT, PUBLISHED, ARCHIVED, SUBMITTED }
+
+    @Serializable
+    enum class Type { ARTICLE, BOOK }
 
     @Serializable
     data class Stats(

@@ -2,6 +2,7 @@ package com.sorenkai.api.services
 
 import com.sorenkai.api.model.Writing
 import com.sorenkai.api.repo.WritingRepository
+import com.sorenkai.api.util.now
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
 
@@ -37,7 +38,7 @@ class WritingServiceTest {
         val sample = Writing(
             title = "T", slug = "s", synopsis = "syn",
             content = "FULL", status = Writing.Status.PUBLISHED, authorId = "a",
-            coverUrl = null, publishedAt = com.sorenkai.api.util.now(), stats = Writing.Stats(1,2,3)
+            coverUrl = null, publishedAt = now(), language="en", createdAt = now(), updatedAt = now(), stats = Writing.Stats(1,2,3)
         )
         repo.items = listOf(sample)
         val svc = WritingService(repo)

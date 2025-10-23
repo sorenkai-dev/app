@@ -2,8 +2,10 @@ package com.sorenkai.api.model
 
 import com.sorenkai.api.model.Discussion.Kind.COMMENT
 import com.sorenkai.api.model.Discussion.Kind.POST
+import com.sorenkai.api.util.newId
+import com.sorenkai.api.util.now
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 /**
  * Represents a discussion item in the system, which can be either
@@ -24,7 +26,7 @@ import kotlin.time.Instant
  */
 @Serializable
 data class Discussion(
-    val id: String = com.sorenkai.api.util.newId(),
+    val id: String = newId(),
     val kind: Kind,
     val writingSlug: String? = null,
     val parentId: String? = null,
@@ -32,8 +34,8 @@ data class Discussion(
     val body: String,
     val likes: Int = 0,
     val hashtags: List<String> = emptyList(),
-    val createdAt: Instant = com.sorenkai.api.util.now(),
-    val updatedAt: Instant = com.sorenkai.api.util.now()
+    val createdAt: Instant = now(),
+    val updatedAt: Instant = now()
 ) {
     /**
      * The type of discussion entry:

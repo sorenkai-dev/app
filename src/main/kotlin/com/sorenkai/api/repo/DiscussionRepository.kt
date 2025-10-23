@@ -10,7 +10,7 @@ import com.sorenkai.api.dto.paging.decodeCursorOrNull
 import com.sorenkai.api.model.Discussion
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 open class DiscussionRepository {
     private val col: MongoCollection<Discussion> by lazy { Mongo.db.getCollection("discussions") }

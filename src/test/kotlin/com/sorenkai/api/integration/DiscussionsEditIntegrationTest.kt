@@ -1,7 +1,6 @@
 package com.sorenkai.api.integration
 
 import com.sorenkai.api.model.Discussion
-import com.sorenkai.api.model.Writing
 import com.sorenkai.api.repo.AuditLogRepository
 import com.sorenkai.api.repo.DiscussionRepository
 import com.sorenkai.api.repo.WritingRepository
@@ -10,7 +9,6 @@ import com.sorenkai.api.services.DiscussionService
 import io.ktor.client.request.header
 import io.ktor.client.request.patch
 import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -21,6 +19,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Instant
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -28,7 +27,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 private class InMemoryDiscussionRepoEdit : DiscussionRepository() {
     val items = mutableListOf<Discussion>()
     override suspend fun create(item: Discussion): Discussion { items.add(item); return item }
-    override suspend fun updateOwn(id: String, uid: String, body: String, hashtags: List<String>, updatedAt: kotlin.time.Instant): Boolean {
+    override suspend fun updateOwn(id: String, uid: String, body: String, hashtags: List<String>, updatedAt: Instant): Boolean {
         val idx = items.indexOfFirst { it.id == id && it.userId == uid }
         if (idx < 0) return false
         items[idx] = items[idx].copy(body = body, hashtags = hashtags, updatedAt = updatedAt)

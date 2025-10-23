@@ -13,6 +13,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -40,14 +41,14 @@ class WritingsRoutesIntegrationTest {
             routing { writingsRoutes(service = svc, enforce = false) }
         }
         // seed 3 published writings with descending publishedAt order expected by API
-        val t3 = kotlin.time.Instant.fromEpochMilliseconds(3)
-        val t2 = kotlin.time.Instant.fromEpochMilliseconds(2)
-        val t1 = kotlin.time.Instant.fromEpochMilliseconds(1)
+        val t3 = kotlinx.datetime.Instant.fromEpochMilliseconds(3)
+        val t2 = kotlinx.datetime.Instant.fromEpochMilliseconds(2)
+        val t1 = kotlinx.datetime.Instant.fromEpochMilliseconds(1)
         runBlocking {
             repo.items.addAll(listOf(
-                Writing(title = "C", slug = "c", synopsis = "c syn", content = "c body", status = Writing.Status.PUBLISHED, authorId = "a", publishedAt = t3, updatedAt = t3),
-                Writing(title = "B", slug = "b", synopsis = "b syn", content = "b body", status = Writing.Status.PUBLISHED, authorId = "a", publishedAt = t2, updatedAt = t2),
-                Writing(title = "A", slug = "a", synopsis = "a syn", content = "a body", status = Writing.Status.PUBLISHED, authorId = "a", publishedAt = t1, updatedAt = t1)
+                Writing(title = "C", slug = "c", synopsis = "c syn", content = "c body", status = Writing.Status.PUBLISHED, authorId = "a", publishedAt = t3, language="en", updatedAt= t3, createdAt = t3),
+                Writing(title = "B", slug = "b", synopsis = "b syn", content = "b body", status = Writing.Status.PUBLISHED, authorId = "a", publishedAt = t2, language="en", updatedAt = t2, createdAt = t2),
+                Writing(title = "A", slug = "a", synopsis = "a syn", content = "a body", status = Writing.Status.PUBLISHED, authorId = "a", publishedAt = t1, language="en", updatedAt = t1, createdAt = t1)
             ))
         }
         // full list (default limit=12)
@@ -75,9 +76,9 @@ class WritingsRoutesIntegrationTest {
             val svc = WritingService(repo)
             routing { writingsRoutes(service = svc, enforce = false) }
         }
-        val publishedAt = kotlin.time.Instant.fromEpochMilliseconds(10)
+        val publishedAt = Instant.fromEpochMilliseconds(10)
         runBlocking {
-            repo.items.add(Writing(title = "Hello", slug = "hello-world", synopsis = "s", content = "# Markdown", status = Writing.Status.PUBLISHED, authorId = "u", publishedAt = publishedAt))
+            repo.items.add(Writing(title = "Hello", slug = "hello-world", synopsis = "s", content = "# Markdown", status = Writing.Status.PUBLISHED, authorId = "u", language = "en", createdAt=publishedAt, publishedAt = publishedAt, updatedAt = publishedAt))
         }
         val ok = client.get("/v1/writings/hello-world")
         assertEquals(HttpStatusCode.OK, ok.status)

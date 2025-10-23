@@ -3,7 +3,7 @@ package com.sorenkai.api.model
 import com.sorenkai.api.util.newId
 import com.sorenkai.api.util.now
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 @Serializable
 enum class TargetType { STORY, COMMENT }

@@ -35,6 +35,7 @@ import kotlinx.serialization.Serializable
 data class WritingListItem(
     val title: String,
     val slug: String,
+    val language: String,
     val synopsis: String? = null,
     val status: Status,
     val type: Writing.Type,
@@ -85,6 +86,7 @@ data class WritingListItem(
 data class WritingDetail(
     val title: String,
     val slug: String,
+    val language: String,
     val synopsis: String? = null,
     val type: Writing.Type,
     val salesLink: String? = null,

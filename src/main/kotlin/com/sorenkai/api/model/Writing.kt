@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
 data class Writing(
     val id: String = com.sorenkai.api.util.newId(),
     val title: String,
+    val language: String,
     val slug: String,
     val synopsis: String? = null,
     val content: String? = null,

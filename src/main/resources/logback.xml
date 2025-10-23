@@ -1,6 +1,7 @@
 <configuration>
     <conversionRule conversionWord="sanmsg" converterClass="com.sorenkai.api.logging.SanitizingMessageConverter"/>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <withJansi>false</withJansi>
         <encoder>
             <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] reqId=%X{X-Request-ID} uid=%X{uid} method=%X{method} path=%X{path} status=%X{status} %-5level %logger{36} - %sanmsg%n</pattern>
         </encoder>

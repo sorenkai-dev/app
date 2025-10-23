@@ -1,6 +1,5 @@
 package com.sorenkai.api.services
 
-import com.google.cloud.firestore.Precondition.updatedAt
 import com.sorenkai.api.dto.WritingDetail
 import com.sorenkai.api.dto.WritingListItem
 import com.sorenkai.api.model.Writing
@@ -30,6 +29,7 @@ class WritingService(
             WritingListItem(
                 title = it.title,
                 slug = it.slug,
+                language = it.language,
                 synopsis = it.synopsis,
                 status = enumValueOf<Writing.Status>(it.status.name.uppercase()),
                 type = enumValueOf<Writing.Type>(it.type.name),
@@ -50,6 +50,7 @@ class WritingService(
         return WritingDetail(
             title = doc.title,
             slug = doc.slug,
+            language = doc.language,
             synopsis = doc.synopsis,
             type = enumValueOf<Writing.Type>(doc.type.name),
             salesLink = doc.salesLink,

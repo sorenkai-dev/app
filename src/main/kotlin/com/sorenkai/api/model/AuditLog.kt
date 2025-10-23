@@ -1,7 +1,9 @@
 package com.sorenkai.api.model
 
+import com.sorenkai.api.util.newId
+import com.sorenkai.api.util.now
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 /**
  * Represents an immutable audit log entry.
@@ -21,13 +23,13 @@ import kotlin.time.Instant
  */
 @Serializable
 data class AuditLog(
-    val id: String = com.sorenkai.api.util.newId(),
+    val id: String = newId(),
     val entityType: EntityType,
     val entityId: String,
     val action: Action,
     val userId: String,
     val changes: Map<String, String?> = emptyMap(),
-    val timestamp: Instant = com.sorenkai.api.util.now(),
+    val timestamp: Instant = now(),
     val ip: String? = null
 ) {
     /**

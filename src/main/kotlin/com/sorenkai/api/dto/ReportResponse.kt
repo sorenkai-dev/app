@@ -3,7 +3,7 @@ package com.sorenkai.api.dto
 import com.sorenkai.api.model.ReportStatus
 import com.sorenkai.api.model.TargetType
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 /**
  * Response payload representing an abuse/content report stored in the system.

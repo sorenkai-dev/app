@@ -33,7 +33,9 @@ open class WritingRepository {
     open suspend fun findBySlug(slug: String): Writing? = col.find(eq("slug", slug)).firstOrNull()
 
     open suspend fun getPublishedBySlug(slug: String): Writing? =
-        col.find(and(eq("slug", slug), eq("status", Writing.Status.PUBLISHED.name))).firstOrNull()
+        col.find(and(
+            eq("slug", slug),
+            eq("status", Writing.Status.PUBLISHED.name))).firstOrNull()
 
     open suspend fun listPublished(limit: Int, offset: Int): List<Writing> {
         val size = limit.coerceIn(1, 50)

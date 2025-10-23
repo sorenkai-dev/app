@@ -1,8 +1,8 @@
 package com.sorenkai.api.util
 
 import java.util.UUID
-import kotlin.time.Clock
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
 
 fun newId(): String = UUID.randomUUID().toString()
 

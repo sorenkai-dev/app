@@ -27,6 +27,11 @@ import kotlinx.coroutines.launch
  * - Delegates server setup to [module] for modular configuration.
  */
 fun main() {
+    // Disable Jansi native library to avoid /tmp execution or mapping issues in some environments
+    // These properties are safe no-ops when Jansi is not present
+    System.setProperty("org.fusesource.jansi.disable", "true")
+    System.setProperty("jansi.passthrough", "true")
+
     val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
 
     val server = embeddedServer(Netty, port = port, host = "0.0.0.0") {

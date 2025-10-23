@@ -5,14 +5,14 @@ import com.sorenkai.api.model.Writing
 import com.sorenkai.api.repo.AuditLogRepository
 import com.sorenkai.api.repo.DiscussionRepository
 import com.sorenkai.api.repo.WritingRepository
+import kotlinx.datetime.Instant
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.assertThrows
 
 private class InMemoryDiscussionRepoSvc : DiscussionRepository() {
     val items = mutableListOf<Discussion>()
     override suspend fun create(item: Discussion): Discussion { items.add(item); return item }
-    override suspend fun updateOwn(id: String, uid: String, body: String, hashtags: List<String>, updatedAt: kotlin.time.Instant): Boolean {
+    override suspend fun updateOwn(id: String, uid: String, body: String, hashtags: List<String>, updatedAt: Instant): Boolean {
         val idx = items.indexOfFirst { it.id == id && it.userId == uid }
         if (idx < 0) return false
         val cur = items[idx]

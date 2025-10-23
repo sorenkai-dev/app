@@ -12,7 +12,7 @@ import com.sorenkai.api.model.Report
 import com.sorenkai.api.model.ReportStatus
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import com.mongodb.client.model.Sorts.descending as sortDesc
 
 open class ReportRepository {

@@ -1,6 +1,6 @@
 # gradle/libs.versions.toml
 [versions]
-kotlin = "2.2.20"
+kotlin = "2.2.21"
 ktor = "3.3.1"
 koin = "3.5.6"
 prometheus = "1.15.5"

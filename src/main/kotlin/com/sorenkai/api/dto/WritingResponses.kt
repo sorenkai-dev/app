@@ -40,9 +40,23 @@ data class WritingListItem(
     val status: Status,
     val type: Writing.Type,
     val salesLink: String? = null,
+    val tags: List<String> = emptyList(),
+    val featured: Boolean? = null,
+    val seoDescription: String? = null,
     @Contextual val createdAt: Instant,
-    @Contextual val updatedAt: Instant
-)
+    @Contextual val updatedAt: Instant?,
+    @Contextual val publishedAt: Instant?,
+    val stats: Stats
+){
+    @Serializable
+    data class Stats(
+        val commentCount: Int,
+        val viewCount: Int,
+        val likeCount: Int,
+        val shareCount: Int,
+        val salesClicks: Int
+    )
+}
 
 /**
  * Full details of a writing, including article content and stats.
@@ -58,7 +72,7 @@ data class WritingListItem(
  * @property authorId The UID of the author who created the writing.
  * @property publishedAt Timestamp when the writing was published (nullable if draft).
  * @property createdAt Timestamp when the writing was first created.
- * @property updatedAt Timestamp when the writing was last updated.
+ * @property updatedAt Timestamp when the writing was last updated (nullable if never updated).
  * @property stats Aggregated statistics for engagement (comments, views, likes).
  *
  * ### Example JSON
@@ -94,15 +108,20 @@ data class WritingDetail(
     val status: Status,
     val coverUrl: String? = null,
     val authorId: String,
-    @Contextual val publishedAt: Instant? = null,
+    @Contextual val publishedAt: Instant?,
     @Contextual val createdAt: Instant,
-    @Contextual val updatedAt: Instant,
-    val stats: Stats
+    @Contextual val updatedAt: Instant?,
+    val stats: Stats,
+    val tags: List<String> = emptyList(),
+    val featured: Boolean? = null,
+    val seoDescription: String? = null
 ) {
     @Serializable
     data class Stats(
         val commentCount: Int,
         val viewCount: Int,
-        val likeCount: Int
+        val likeCount: Int,
+        val shareCount: Int,
+        val salesClicks: Int
     )
 }

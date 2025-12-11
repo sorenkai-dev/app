@@ -104,56 +104,94 @@ private fun ensureFirebase() {
     if (FirebaseApp.getApps().isNotEmpty()) return
 
     val env = System.getenv("ENV") ?: System.getProperty("ENV")
-    val isProd = env?.equals("prod", ignoreCase = true) == true
-    val isTest = env?.equals("test", ignoreCase = true) == true
-    val testBypass = (System.getProperty("TEST_AUTH_ENABLED") ?: System.getenv("TEST_AUTH_ENABLED") ?: "false").equals("true", true)
-    val credsEnv = System.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
-    if (isTest || testBypass || (!isProd && credsEnv.isNullOrBlank())) {
-        securityLog.info("Skipping Firebase initialization (test or non-prod without credentials)")
-        return
-    }
+    val isTestOrDev = env?.equals("test", ignoreCase = true) == true || env?.equals("dev", ignoreCase = true) == true
 
-    val credsPathOrJson = credsEnv
-        ?: error("GOOGLE_APPLICATION_CREDENTIALS env var is required")
+    // Note: If you want to allow Firebase to be completely skipped in non-prod,
+    // you must handle the authentication logic later (e.g., using a mock Auth class).
+    // For now, we require it to ensure production security is always active.
 
-    val credentials = when {
-        // Allow inline JSON (starts with '{') or path to file or directory containing the file
-        credsPathOrJson.trim().startsWith("{") -> {
-            GoogleCredentials.fromStream(credsPathOrJson.byteInputStream())
-        }
-        else -> {
-            val path = credsPathOrJson.trim()
-            val file = java.io.File(path)
-            require(file.exists()) { "Service account path not found at $path" }
+    // --- START: ADC IMPLEMENTATION ---
+    // In production, we explicitly load Application Default Credentials (ADC)
+    // provided by the Cloud Run Service Account.
+    try {
+        val credentials = GoogleCredentials.getApplicationDefault()
 
-            val targetFile = when {
-                file.isFile -> file
-                file.isDirectory -> {
-                    // Prefer a conventional name, else any .json, else any regular file
-                    val named = java.io.File(file, "firebase-service-account.json")
-                    if (named.isFile) named else {
-                        val files = file.listFiles()?.toList().orEmpty()
-                        files.firstOrNull { it.isFile && it.name.lowercase().endsWith(".json") }
-                            ?: files.firstOrNull { it.isFile }
-                            ?: error("No credential file found in directory $path")
-                    }
-                }
-                else -> error("Invalid credentials path: $path")
-            }
+        val projectId = System.getenv("FIREBASE_PROJECT_ID")
+            ?: error("FIREBASE_PROJECT_ID env var is required")
 
-            targetFile.inputStream().use { GoogleCredentials.fromStream(it) }
+        val options = FirebaseOptions.builder()
+            .setProjectId(projectId)
+            .setCredentials(credentials) // <-- **THE FIX**
+            .build()
+
+        FirebaseApp.initializeApp(options)
+        securityLog.info("Firebase initialized for project '$projectId' using Application Default Credentials.")
+
+    } catch (e: Exception) {
+        // If credentials fail to load, allow dev/test to continue, but crash in prod.
+        if (isTestOrDev) {
+             securityLog.warn("Firebase initialization failed in non-prod environment: ${e.message}")
+        } else {
+             securityLog.error("Firebase initialization failed in PROD: ${e.message}")
+             throw IllegalStateException("Failed to initialize Firebase Admin SDK in PROD.", e)
         }
     }
+    // --- END: ADC IMPLEMENTATION ---
 
-    val projectId = System.getenv("FIREBASE_PROJECT_ID")
-        ?: error("FIREBASE_PROJECT_ID env var is required")
+//    val isProd = env?.equals("prod", ignoreCase = true) == true
+//    val isTest = env?.equals("test", ignoreCase = true) == true
+//    val testBypass =
+//        (System.getProperty("TEST_AUTH_ENABLED") ?:
+//        System.getenv("TEST_AUTH_ENABLED") ?:
+//        "false").equals("true", true)
+//
+//    val credsEnv = System.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+//
+//    if (isTest || testBypass) {
+//        securityLog.info("Skipping Firebase initialization (test or non-prod without credentials)")
+//        return
+//    }
 
-    val options = FirebaseOptions.builder()
-        .setCredentials(credentials)
-        .setProjectId(projectId)
-        .build()
+//    val credsPathOrJson = credsEnv
+//        ?: error("GOOGLE_APPLICATION_CREDENTIALS env var is required")
 
-    FirebaseApp.initializeApp(options)
-    securityLog.info("Firebase initialized for project '$projectId'")
+//    val credentials = when {
+//        // Allow inline JSON (starts with '{') or path to file or directory containing the file
+//        credsPathOrJson.trim().startsWith("{") -> {
+//            GoogleCredentials.fromStream(credsPathOrJson.byteInputStream())
+//        }
+//        else -> {
+//            val path = credsPathOrJson.trim()
+//            val file = java.io.File(path)
+//            require(file.exists()) { "Service account path not found at $path" }
+//
+//            val targetFile = when {
+//                file.isFile -> file
+//                file.isDirectory -> {
+//                    // Prefer a conventional name, else any .json, else any regular file
+//                    val named = java.io.File(file, "firebase-service-account.json")
+//                    if (named.isFile) named else {
+//                        val files = file.listFiles()?.toList().orEmpty()
+//                        files.firstOrNull { it.isFile && it.name.lowercase().endsWith(".json") }
+//                            ?: files.firstOrNull { it.isFile }
+//                            ?: error("No credential file found in directory $path")
+//                    }
+//                }
+//                else -> error("Invalid credentials path: $path")
+//            }
+//
+//            targetFile.inputStream().use { GoogleCredentials.fromStream(it) }
+//        }
+//    }
+
+//    val projectId = System.getenv("FIREBASE_PROJECT_ID")
+//        ?: error("FIREBASE_PROJECT_ID env var is required")
+//
+//    val options = FirebaseOptions.builder()
+//        .setProjectId(projectId)
+//        .build()
+//
+//    FirebaseApp.initializeApp(options)
+//    securityLog.info("Firebase initialized for project '$projectId'")
 }

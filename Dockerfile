@@ -38,8 +38,9 @@ ENV LANG=C.UTF-8
 
 # Install curl for healthcheck (do this as root before switching user)
 RUN apt-get update \
+ && apt-get upgrade -y \
  && apt-get install -y --no-install-recommends curl \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* # Clean up the cache to keep the image size small
 
 # Create a non-root user for security
 RUN useradd -ms /bin/bash appuser

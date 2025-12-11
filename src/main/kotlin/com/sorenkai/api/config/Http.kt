@@ -62,6 +62,8 @@ private fun CORSConfig.allowHostsFromEnv(rawEnv: String?) {
         var hostPort = raw
         var schemes: List<String> = listOf("https")
 
+        val isLocalhost = raw.contains("localhost", ignoreCase = true) // <-- NEW CHECK
+
         when {
             raw.startsWith("https://", ignoreCase = true) -> {
                 hostPort = raw.removePrefix("https://")
@@ -69,11 +71,12 @@ private fun CORSConfig.allowHostsFromEnv(rawEnv: String?) {
             }
             raw.startsWith("http://", ignoreCase = true) -> {
                 hostPort = raw.removePrefix("http://")
-                schemes = if (isProd) listOf("https") else listOf("http", "https")
+                // EXCEPTION: If it's localhost, allow http even in prod. Otherwise, force https.
+                schemes = if (isProd && !isLocalhost) listOf("https") else listOf("http", "https") // <-- MODIFIED LINE
             }
         }
 
-        hostPort = hostPort.substringBefore("/") // drop path/query
+        hostPort = hostPort.substringBefore("/")
         allowHost(hostPort, schemes = schemes)
     }
 }

@@ -7,6 +7,7 @@ import com.sorenkai.api.config.configureSecurity
 import com.sorenkai.api.config.configureSerialization
 import com.sorenkai.api.config.configureValidation
 import com.sorenkai.api.errors.configureExceptionMapping
+import com.sorenkai.api.health.MongoHealthCheck
 import com.sorenkai.api.routes.configureRouting
 import com.sorenkai.api.routes.initRepos
 import io.ktor.server.application.Application
@@ -70,7 +71,7 @@ fun main() {
  * - Repository initialization (executed asynchronously on IO dispatcher)
  */
 fun Application.module() {
-    validateRequiredConfigOrFail()
+//    validateRequiredConfigOrFail()
     configureExceptionMapping()
     configureSerialization()
     configureValidation()
@@ -111,8 +112,8 @@ private fun Application.validateRequiredConfigOrFail() {
     if (isProd) {
         if (mongoUri.isNullOrBlank()) missing += "MONGODB_URI"
         if ((gcpProject.isNullOrBlank()) && (fbProject.isNullOrBlank())) missing += "GOOGLE_CLOUD_PROJECT|FIREBASE_PROJECT_ID"
-        if (appCheckEnforce.isNullOrBlank()) missing += "APP_CHECK_ENFORCE"
-        if (allowedOrigins.isNullOrBlank()) missing += "ALLOWED_ORIGINS"
+//        if (appCheckEnforce.isNullOrBlank()) missing += "APP_CHECK_ENFORCE"
+//        if (allowedOrigins.isNullOrBlank()) missing += "ALLOWED_ORIGINS"
     }
 
     // Log redacted summary
@@ -135,13 +136,14 @@ private fun Application.validateRequiredConfigOrFail() {
     // Perform Mongo readiness ping; fail if not ok in prod
     try {
         kotlinx.coroutines.runBlocking {
-            val check = com.sorenkai.api.health.MongoHealthCheck().check()
+            val check = MongoHealthCheck().check()
             if (!check.ok && isProd) {
                 val err = check.error ?: "unknown"
                 throw IllegalStateException("Mongo readiness check failed: ${'$'}err")
             }
         }
     } catch (t: Throwable) {
-        if (isProd) throw t else environment.log.warn("Mongo readiness check failed in non-prod: ${'$'}{t.message}")
+        if (isProd) throw t
+        else environment.log.warn("Mongo readiness check failed in non-prod: ${'$'}{t.message}")
     }
 }

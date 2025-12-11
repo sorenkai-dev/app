@@ -17,10 +17,14 @@ data class Writing(
     val authorId: String,
     @Contextual val publishedAt: Instant? = null,
     @Contextual val createdAt: Instant,
-    @Contextual val updatedAt: Instant,
+    @Contextual val updatedAt: Instant?,
     val stats: Stats = Stats(),
     val type: Type = Type.ARTICLE,
-    val salesLink: String? = null
+    val salesLink: String? = null,
+    // v1.1 additions
+    val tags: List<String> = emptyList(),
+    val featured: Boolean? = null,
+    val seoDescription: String? = null
 ) {
     @Serializable
     enum class Status { DRAFT, PUBLISHED, ARCHIVED, SUBMITTED }
@@ -32,6 +36,9 @@ data class Writing(
     data class Stats(
         val commentCount: Int = 0,
         val viewCount: Int = 0,
-        val likeCount: Int = 0
+        val likeCount: Int = 0,
+        // v1.1 additions
+        val shareCount: Int = 0,
+        val salesClicks: Int = 0
     )
 }

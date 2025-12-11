@@ -2,8 +2,8 @@
 [versions]
 kotlin = "2.2.21"
 ktor = "3.3.3"
-koin = "3.5.6"
-prometheus = "1.16.1"
+koin = "4.2.0-beta2"
+prometheus = "1.15.5"
 mongo-bom = "5.6.2"
 firebase-admin = "9.7.0"
 logback = "1.5.21"

@@ -112,6 +112,146 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/writings/{slug}/share:
+    post:
+      summary: Increment share count for a writing
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated share count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareResponse'
+        '400':
+          description: Missing slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/writings/{slug}/like:
+    post:
+      summary: Increment like count for a writing
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated like count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeResponse'
+        '400':
+          description: Missing slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/writings/{slug}/unlike:
+    post:
+      summary: Decrement like count for a writing (not below zero)
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated like count (idempotent when already 0)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeResponse'
+        '400':
+          description: Missing slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/writings/{slug}/view:
+    post:
+      summary: Increment view count for a writing
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated view count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewResponse'
+        '400':
+          description: Missing slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/writings/{slug}/click-sale:
+    post:
+      summary: Increment sales click count for a writing
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated sales click count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesClickResponse'
+        '400':
+          description: Missing slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
   /v1/discussions:
     get:
       summary: List discussions
@@ -435,16 +575,35 @@ components:
   schemas:
     WritingListItem:
       type: object
-      required: [slug, title, tags, createdAt, createdBy]
+      required: [slug, title, language, status, type, createdAt]
       properties:
         slug: { type: string }
         title: { type: string }
-        summary: { type: string, nullable: true }
+        language: { type: string, description: "ISO language code (e.g., en, es)" }
+        synopsis: { type: string, nullable: true }
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED, ARCHIVED, SUBMITTED]
+        type:
+          type: string
+          enum: [ARTICLE, BOOK]
+        salesLink: { type: string, nullable: true }
         tags:
           type: array
           items: { type: string }
         createdAt: { type: string, format: date-time }
-        createdBy: { type: string }
+        updatedAt: { type: string, format: date-time, nullable: true }
+        featured: { type: boolean, nullable: true }
+        seoDescription: { type: string, nullable: true }
+        stats:
+          type: object
+          required: [commentCount, viewCount, likeCount, shareCount, salesClicks]
+          properties:
+            commentCount: { type: integer, minimum: 0 }
+            viewCount: { type: integer, minimum: 0 }
+            likeCount: { type: integer, minimum: 0 }
+            shareCount: { type: integer, minimum: 0 }
+            salesClicks: { type: integer, minimum: 0 }
 
     PageWritingListItem:
       type: object
@@ -470,6 +629,30 @@ components:
           items: { type: string }
         createdAt: { type: string, format: date-time }
         createdBy: { type: string }
+
+    ShareResponse:
+      type: object
+      properties:
+        slug: { type: string }
+        shareCount: { type: integer }
+
+    LikeResponse:
+      type: object
+      properties:
+        slug: { type: string }
+        likeCount: { type: integer }
+
+    ViewResponse:
+      type: object
+      properties:
+        slug: { type: string }
+        viewCount: { type: integer }
+
+    SalesClickResponse:
+      type: object
+      properties:
+        slug: { type: string }
+        salesClicks: { type: integer }
 
     Discussion:
       type: object

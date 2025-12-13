@@ -23,12 +23,6 @@ services:
       # ---- Mongo ----
       MONGODB_URI: ${MONGODB_URI:-mongodb://sorenkai:sorenkai@mongo:27017/sorenkai?authSource=admin&retryWrites=false}
 
-      # ---- Firebase ----
-      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-sorenkai}
-      # RTDB URL (primary) with compatibility alias
-      FIREBASE_RTDB_URL: ${FIREBASE_RTDB_URL:-${FIREBASE_DATABASE_URL:-https://sorenkai-default-rtdb.firebaseio.com}}
-      FIREBASE_DATABASE_URL: ${FIREBASE_DATABASE_URL:-https://sorenkai-default-rtdb.firebaseio.com}
-      # Point to the secrets directory inside the container (our code will locate the JSON file within)
       GOOGLE_APPLICATION_CREDENTIALS: /run/secrets
 
       # ---- Rate limiting (dev defaults) ----
@@ -45,12 +39,6 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-
-    # Use Docker secrets instead of a bind mount
-    secrets:
-      - source: firebase_sa
-        target: firebase-service-account.json   # results in /run/secrets/firebase-service-account.json
-        mode: 0440
 
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/serverhealth > /dev/null || exit 1"]
@@ -78,6 +66,3 @@ services:
 volumes:
   mongo_data:
 
-secrets:
-  firebase_sa:
-    file: ./secrets/sorenkai-firebase-adminsdk-fbsvc-b404631626.json

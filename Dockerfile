@@ -1,10 +1,6 @@
 # ---- Build stage -------------------------------------------------------------
 FROM eclipse-temurin:24-jdk AS build
 
-# Optionally accept a Mongo URI at build-time (useful for baking defaults in dev images)
-ARG MONGODB_URI="mongodb://localhost:27017/sorenkai?retryWrites=false"
-ENV MONGODB_URI=${MONGODB_URI}
-
 WORKDIR /workspace
 
 # Copy only files that affect dependency resolution first (better caching)

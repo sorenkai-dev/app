@@ -1,6 +1,6 @@
 # SorenKai Backend
 
-Backend API built with Ktor 3, Kotlinx Serialization, MongoDB, and Firebase Auth.
+Backend API built with Ktor 3, Kotlinx Serialization, MongoDB, and Zitadel Auth.
 
 ## Deployment
 
@@ -16,8 +16,8 @@ This option offers scale-to-zero and minimal ops. You’ll still use MongoDB Atl
 Manifests are provided under `deploy/k8s`:
 - `deployment.yaml`: Non-root, read-only FS (tmp writable), probes to `/serverhealth`, env/secret wiring, zero-downtime rolling updates enabled (maxUnavailable=0, maxSurge=1), lifecycle preStop drain, and terminationGracePeriodSeconds set.
 - `service.yaml`: ClusterIP service exposing port 80 -> container 8080.
-- `configmap.yaml`: Non-sensitive configuration (ENV, ALLOWED_ORIGINS, MAX_UPLOAD_MB, FIREBASE_RTDB_URL, shutdown).
-- `secrets.yaml`: Template for sensitive values (Mongo URI, Firebase project id) and Google SA secret placeholder.
+- `configmap.yaml`: Non-sensitive configuration (ENV, ALLOWED_ORIGINS, MAX_UPLOAD_MB, shutdown).
+- `secrets.yaml`: Template for sensitive values (Mongo URI) and Google SA secret placeholder.
 - `kustomization.yaml`: Ties resources together and allows image tag override.
 
 Quick start (staging example):
@@ -25,9 +25,7 @@ Quick start (staging example):
 2. Create secrets securely (recommended):
    - `kubectl create secret generic sorenkai-api-secrets \
        --from-literal=MONGODB_URI='mongodb://user:pass@mongo:27017/sorenkai?authSource=admin&retryWrites=false' \
-       --from-literal=FIREBASE_PROJECT_ID='sorenkai'`
-   - `kubectl create secret generic sorenkai-api-google-sa \
-       --from-file=firebase-service-account.json=/path/to/your-sa.json`
+   - `kubectl create secret generic sorenkai-api-google-sa'`'
    (Alternatively, edit `deploy/k8s/secrets.yaml` with placeholders and apply only to non-prod.)
 3. Deploy:
    - `kubectl apply -k deploy/k8s`
@@ -38,9 +36,9 @@ Quick start (staging example):
 
 - No secrets are committed to this repository. The `secrets/` directory is git-ignored.
 - Production/staging use external secret stores:
-  - Docker Compose: Docker secrets (see `docker-compose.yml`, `secrets.firebase_sa`).
+  - Docker Compose: Docker secrets (see `docker-compose.yml`).
   - Kubernetes: K8s Secrets mounted at `/var/run/secrets/google` (see `deploy/k8s/deployment.yaml`).
-- Rotation: follow the runbook at `docs/runbooks/firebase-credentials-rotation.md`.
+- Rotation: follow the runbook at `docs/runbooks/`.
 - Local development:
   - Set `GOOGLE_APPLICATION_CREDENTIALS` to a directory or file path containing your service account JSON.
   - Do not commit the credential file.
@@ -53,9 +51,9 @@ Quick start (staging example):
 
 ## Runbooks & Incident Response
 
-- Incident Response: see docs/runbooks/incident-response.md for playbooks covering high error rate/latency, Mongo outages, Firebase auth issues, rate limiting, and rollout problems.
+- Incident Response: see docs/runbooks/incident-response.md for playbooks covering high error rate/latency, Mongo outages, rate limiting, and rollout problems.
 - Backups/Restore: docs/runbooks/mongo-backup-restore.md
-- Firebase credentials rotation: docs/runbooks/firebase-credentials-rotation.md
+- credentials rotation: docs/runbooks/
 - DSR (export/delete): docs/runbooks/dsr-requests.md
 
 ## API lifecycle & versioning
@@ -185,7 +183,7 @@ Notes:
 ## Local development with Docker Compose
 
 - Prerequisites: Docker Desktop.
-- Copy your Firebase service account JSON into `./secrets/` (git-ignored). The default compose file references `./secrets/sorenkai-firebase-adminsdk-fbsvc-b404631626.json`.
+- 
 - Start services:
   - Windows PowerShell: `docker compose up --build`
 - The API will listen on http://localhost:8080.
@@ -213,7 +211,7 @@ Discussions
   - Get recent top-level posts (kind=POST) with nested comments when requested. Supports pagination (limit/cursor). Optional storyId filter to tie threads to a writing; parentId returns direct replies.
   - App Check required.
 - POST /v1/discussions
-  - Create a new post/comment. Requires Firebase auth + App Check. Hashtags auto-extracted and audit logged.
+  - Create a new post/comment. Requires Zitadel auth. Hashtags auto-extracted and audit logged.
 - PATCH /v1/discussions/{id}
   - Edit a post/comment. Only the author may edit. Audit logged with field changes.
 - DELETE /v1/discussions/{id}
@@ -229,7 +227,7 @@ Schemas (Mongo $jsonSchema summary)
 
 Security
 - Writings: read-only endpoints protected by App Check (must come from sorenkai.com).
-- Discussions: App Check on all; Firebase auth required for POST, PATCH, DELETE.
+- Discussions: App Check on all; Zitadel auth required for POST, PATCH, DELETE.
 - Admin routes (/v1/admin) and /serverhealth are stubbed/admin-only, not exposed to the frontend.
 
 Other
@@ -242,15 +240,6 @@ Other
 Core configuration:
 - PORT: Server port (default 8080)
 - MONGODB_URI: Mongo connection string. In Compose, defaults to the local `mongo` service.
-
-Firebase:
-- FIREBASE_PROJECT_ID: Project ID used by Firebase Admin initialization.
-- GOOGLE_APPLICATION_CREDENTIALS: Path to a file or directory containing the service account JSON. In Compose this is `/run/secrets`.
-- FIREBASE_RTDB_URL / FIREBASE_DATABASE_URL: Realtime Database URL used by the RTDB-based rate limiters.
-
-Frontend verification (Writings page):
-- APP_CHECK_ENFORCE: When true, GET /v1/stories requires an `X-Firebase-AppCheck` token. Default false in Compose for smooth local dev.
-- ALLOWED_ORIGINS: Comma-separated list of allowed Origin/Referer prefixes. Example: `https://app.example,https://dev.example`.
 
 Operational:
 - ENABLE_JVM_METRICS: Enable Micrometer JVM metrics (default true)

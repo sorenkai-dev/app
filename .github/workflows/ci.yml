@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [ "main", "dev" ]
   pull_request:
-    branches: [ "**" ]
+    branches: [ "main", "dev"  ]
   workflow_dispatch:
     inputs:
       smoke_url:
@@ -77,3 +77,23 @@ jobs:
           set -euo pipefail
           echo "Probing $RESOLVED_URL/serverhealth"
           curl -fsS "$RESOLVED_URL/serverhealth" -H 'Accept: application/json' | sed -e 's/.*/Response: &/'
+
+  orphan-check:
+    name: Orphaned / Unused Code Check
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '24'
+          cache: gradle
+
+      - name: Run ktlint (unused imports, formatting)
+        run: ./gradlew --no-daemon ktlintCheck
+
+      - name: Compile with unused-reporting
+        run: ./gradlew --no-daemon compileKotlin

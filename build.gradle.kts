@@ -1,144 +1,87 @@
-import io.gitlab.arturbosch.detekt.Detekt
-import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
+import dev.detekt.gradle.extensions.FailOnSeverity
 
 plugins {
-    alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.kotlinx.serialization)
-    alias(libs.plugins.ktor.plugin)
-    id("io.gitlab.arturbosch.detekt") version "1.23.8"
-    application
+    alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.kotlinx.serialization) apply false
+    alias(libs.plugins.ktor.plugin) apply false
+    // Code style
+    alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.spotless) apply false
+    alias(libs.plugins.ktlint) apply false
 }
 
-group = "com.sorenkai"
-version = "0.1.0"
+//val detektConfigFile = file("$rootDir/detekt.yml")
+//if (!detektConfigFile.exists()) {
+//    throw GradleException("Root detekt.yml not found at: $detektConfigFile")
+//}
 
-kotlin {
-    jvmToolchain(24)
-    compilerOptions {
-        freeCompilerArgs.addAll(
-            listOf(
-                "-opt-in=kotlin.time.ExperimentalTime"
-            )
-        )
-    }
-    sourceSets.all {
-        languageSettings.optIn("kotlin.contracts.ExperimentalContracts")
-    }
-}
-
-
-application {
-    mainClass.set("io.ktor.server.netty.EngineMain")
-}
 
 repositories {
     mavenCentral()
     google()
 }
 
-// Align Kotlin stdlib artifacts to the same version to avoid classpath conflicts during tests
-val kotlinVersion = libs.versions.kotlin.get()
-configurations.all {
-    resolutionStrategy.eachDependency {
-        if (requested.group == "org.jetbrains.kotlin" && requested.name.startsWith("kotlin-stdlib")) {
-            useVersion(kotlinVersion)
-            because("Align Kotlin stdlib to $kotlinVersion for consistent runtime")
+subprojects {
+    group = "com.sorenkai"
+    version = "2.0.0"
+
+    apply(plugin = "com.diffplug.spotless")
+    apply(plugin = "org.jlleitschuh.gradle.ktlint")
+    apply(plugin = "dev.detekt")
+
+    extensions.configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+        kotlin {
+            target("src/**/*.kt")
+            ktlint()
+            trimTrailingWhitespace()
+            endWithNewline()
+        }
+        kotlinGradle {
+            target("**/*.gradle.kts")
+            ktlint()
+            trimTrailingWhitespace()
+            endWithNewline()
         }
     }
-}
 
-detekt {
-    // Detekt version
-    toolVersion = "1.23.8"
-
-    // Use your own YAML if you want to customize rules
-    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
-
-    // Generate default config (optional)
-    buildUponDefaultConfig = true
-
-    // Point Detekt’s internal Kotlin compiler to JDK 21
-    // The property name here is *jvmTarget*, but you set it in build args, not directly
-    basePath = projectDir.absolutePath
-}
-
-tasks.withType<Detekt>().configureEach {
-    jvmTarget = "21"
-    ignoreFailures = true
-}
-tasks.withType<DetektCreateBaselineTask>().configureEach {
-    jvmTarget = "21"
-    ignoreFailures = true
-}
-
-// Allow skipping Docker-dependent integration tests when NO_DOCKER=true (useful in CI or constrained envs)
-tasks.test {
-    useJUnitPlatform()
-    val noDocker = System.getenv("NO_DOCKER")?.equals("true", ignoreCase = true) == true
-    if (noDocker) {
+    // Ktlint plugin defaults
+    extensions.configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+        android.set(false)
+        verbose.set(true)
+        outputToConsole.set(true)
+        ignoreFailures.set(true)
         filter {
-            excludeTestsMatching("com.sorenkai.api.integration.*PaginationIntegrationTest")
-            excludeTestsMatching("com.sorenkai.api.integration.AdminRoutesIntegrationTest")
+            exclude("**/build/**")
         }
     }
-}
 
-dependencies {
-    // Ktor core
-    implementation(libs.bundles.ktor.base)
-    implementation(libs.ktor.server.swagger)
-    implementation(libs.ktor.server.openapi)
-    implementation(libs.ktor.server.caching.headers)
-    implementation(libs.ktor.server.call.id)
-    implementation(libs.ktor.server.auth.jwt)
+//    extensions.configure<dev.detekt.gradle.Detekt> {
+////        config = files(detektConfigFile)
+//        buildUponDefaultConfig = false
+//        autoCorrect = true
+//        ignoreFailures = true
+//        failOnSeverity = FailOnSeverity.Never
+//    }
 
-    // KotlinX, datetime, uuid
-    implementation(libs.kotlinx.serialization.json)
-
-    // JWT
-    implementation(libs.auth0.java.jwt)
-
-    // Google API Client for JWKS HTTPS fetch
-    implementation(libs.google.api.client)
-
-    // Mongo with BOM
-    implementation(platform(libs.mongodb.bom))
-    implementation(libs.mongodb.kotlin.coroutine)
-    implementation(libs.mongodb.bson.kotlinx)
-
-    // Firebase Admin
-    implementation(libs.firebase.admin)
-
-    // DI
-    implementation(libs.koin.ktor)
-    implementation(libs.koin.logger.slf4j)
-
-    // Observability
-    implementation(libs.ktor.metrics.micrometer)
-    implementation(libs.micrometer.prometheus)
-
-    // Logging — exclude Janino (removes the CVEs)
-    implementation(libs.logback.classic) {
-        exclude(group = "org.codehaus.janino", module = "janino")
+    tasks.withType<org.jlleitschuh.gradle.ktlint.tasks.GenerateReportsTask>().configureEach {
+        enabled = false
     }
 
-    // Config YAML (optional but handy)
-    implementation(libs.ktor.server.config.yaml)
-
-    // Security: pin Apache Commons Lang3 to a safe version and override transitives
-    implementation(libs.commons.lang3)
-    implementation(libs.commons.compress)
-
-    // Test
-    testImplementation(libs.ktor.server.test.host)
-    testImplementation(libs.testcontainers)
-    testImplementation(libs.testcontainers.mongodb)
-    testImplementation(libs.junit.api)
-    testImplementation(libs.junit.params)
-    testRuntimeOnly(libs.junit.engine)
-    testRuntimeOnly(libs.junit.platform.launcher)
-    testImplementation(libs.kotlinx.coroutines.test)
+    tasks.withType<org.jlleitschuh.gradle.ktlint.tasks.KtLintCheckTask>().configureEach {
+        enabled = false
+    }
 }
+
+// Align Kotlin stdlib artifacts to the same version to avoid classpath conflicts during tests
+//val kotlinVersion = libs.versions.kotlin.get()
+//configurations.all {
+//    resolutionStrategy.eachDependency {
+//        if (requested.group == "org.jetbrains.kotlin" && requested.name.startsWith("kotlin-stdlib")) {
+//            useVersion(kotlinVersion)
+//            because("Align Kotlin stdlib to $kotlinVersion for consistent runtime")
+//        }
+//    }
+//}
 
 // Globally exclude vulnerable commons-lang 2.x if any transitive tries to bring it
 configurations.all {

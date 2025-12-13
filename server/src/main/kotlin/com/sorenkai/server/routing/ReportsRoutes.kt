@@ -1,0 +1,93 @@
+package com.sorenkai.server.routing
+
+/**
+ * Routes for abuse report submission and moderation.
+ *
+ * - POST /v1/reports (auth required): submit a report
+ * - GET /v1/mod/reports (MOD/ADMIN): list reports with paging
+ * - POST /v1/mod/reports/{id}/close (MOD/ADMIN): close a report
+ */
+fun lolz() {}
+// fun Route.reportsRoutes(service: ReportService = ReportService()) {
+//    // Public reporting endpoint (auth required)
+// //    post("/v1/reports") {
+// //
+// ////        val uid = call.extractUidOrUnauthorized() ?: return@post
+// //        val req = call.receive<ReportCreateRequest>()
+// //        val created = service.create(uid, req)
+// //        call.respond(
+// //            HttpStatusCode.Created,
+// //            ReportResponse(
+// //                id = created.id,
+// //                targetType = created.targetType,
+// //                targetId = created.targetId,
+// //                reason = created.reason,
+// //                createdAt = created.createdAt,
+// //                createdBy = created.createdBy,
+// //                status = created.status,
+// //            ),
+// //        )
+// //    }
+// //
+// //    // Moderator-only endpoints
+// //    route("/v1/mod/reports") {
+// //        get {
+// //
+// //            call.requireRole(Role.MOD, Role.ADMIN) ?: return@get
+// //            val qp = call.request.queryParameters
+// //            val statusParam = qp["status"]?.lowercase() ?: "open"
+// //            val status =
+// //                when (statusParam) {
+// //                    "open" -> ReportStatus.OPEN
+// //                    "closed" -> ReportStatus.CLOSED
+// //                    else -> ReportStatus.OPEN
+// //                }
+// //            val pageSizeReq = qp["pageSize"]?.toIntOrNull() ?: 20
+// //            val pageSize = pageSizeReq.coerceIn(1, 100)
+// //            val cursor = qp["cursor"]
+// //            val (items, next) = service.page(status, pageSize, cursor)
+// //            val body =
+// //                Page(
+// //                    items =
+// //                        items.map {
+// //                            ReportResponse(
+// //                                id = it.id,
+// //                                targetType = it.targetType,
+// //                                targetId = it.targetId,
+// //                                reason = it.reason,
+// //                                createdAt = it.createdAt,
+// //                                createdBy = it.createdBy,
+// //                                status = it.status,
+// //                            )
+// //                        },
+// //                    nextCursor = next?.encode(),
+// //                )
+// //            call.respond(body)
+// //        }
+// //
+// //        post("/{id}/close") {
+// //            call.requireRole(Role.MOD, Role.ADMIN) ?: return@post
+// //            val id = call.parameters["id"]
+// //            if (id.isNullOrBlank()) {
+// //                return@post call.respond(
+// //                    HttpStatusCode.BadRequest,
+// //                    com.sorenkai.server.errors.ApiErrorResponse(
+// //                        ok = false,
+// //                        error =
+// //                            com.sorenkai.server.errors.ApiErrorBody(
+// //                                code = com.sorenkai.ErrorCode.VALIDATION_FAILED.name,
+// //                                message = "Missing report id",
+// //                                details = mapOf("param" to "id"),
+// //                            ),
+// //                    ),
+// //                )
+// //            }
+// //            val ok = service.close(id)
+// //            if (ok) {
+// //                call.respond(mapOf("ok" to true))
+// //            } else {
+// //                call.respond(HttpStatusCode.NotFound, mapOf("ok" to false, "error" to "NOT_FOUND"))
+// //            }
+// //        }
+// //    }
+// }

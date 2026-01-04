@@ -14,9 +14,6 @@ data:
   # Request max upload size (MB) for Content-Length guard
   MAX_UPLOAD_MB: "10"
 
-  # Firebase RTDB URL (used by rate limiter); can be left empty if unused
-  FIREBASE_RTDB_URL: "https://sorenkai-default-rtdb.firebaseio.com"
-
   # Graceful shutdown configuration (seconds)
   SHUTDOWN_GRACE_SECONDS: "5"
   SHUTDOWN_TIMEOUT_SECONDS: "10"

@@ -1,0 +1,193 @@
+config:
+  validation: true
+  warningsAsErrors: false
+  checkExhaustiveness: false
+  excludes:
+
+processors:
+  active: true
+  exclude:
+    - 'DetektProgressListener'
+
+console-reports:
+  active: true
+  exclude:
+    - 'ProjectStatisticsReport'
+    - 'ComplexityReport'
+    - 'NotificationReport'
+    - 'IssuesReport'
+    - 'FileBasedIssuesReport'
+
+################################################################################
+# COMMENTS
+################################################################################
+comments:
+  active: true
+  UndocumentedPublicClass:
+    active: false   # Not required right now
+  UndocumentedPublicFunction:
+    active: false
+  UndocumentedPublicProperty:
+    active: false
+
+################################################################################
+# COMPLEXITY ("Balanced mode" = warnings, not failures)
+################################################################################
+complexity:
+  active: true
+  LongMethod:
+    active: true
+    allowedLines: 120   # raise from default; your routes are long
+    severity: "warning"   # TODO: change to error after refactor
+  CyclomaticComplexMethod:
+    active: true
+    allowedComplexity: 20
+    severity: "warning"   # TODO: change to error after refactor
+  TooManyFunctions:
+    active: true
+    allowedFunctionsPerClass: 20
+    allowedFunctionsPerInterface: 20  # Add this line
+    allowedFunctionsPerObject: 20     # Optional: good for large companion objects
+    allowedFunctionsPerFile: 20
+    severity: "warning"   # TODO: change to error after refactor
+  LargeClass:
+    active: true
+    allowedLines: 1000
+    severity: "warning"   # TODO: change to error after refactor
+  NestedBlockDepth:
+    active: true
+    allowedDepth: 5
+    severity: "warning"
+
+################################################################################
+# COROUTINES
+################################################################################
+coroutines:
+  active: true
+  InjectDispatcher:
+    active: true
+    severity: "error"   # misuse leads to real bugs
+  RedundantSuspendModifier:
+    active: true
+    severity: "warning"
+
+################################################################################
+# EMPTY BLOCKS (real red flags unless intentional)
+################################################################################
+empty-blocks:
+  active: true
+  EmptyKotlinFile:
+    active: false   # You have placeholder files during module split
+  EmptyFunctionBlock:
+    active: true
+    ignoreOverridden: true
+    severity: "warning"   # TODO: switch to error once module rewrite is done
+  EmptyClassBlock:
+    active: false   # allow placeholders temporarily
+
+################################################################################
+# EXCEPTIONS (mostly real bugs → ERROR)
+################################################################################
+exceptions:
+  active: true
+  TooGenericExceptionCaught:
+    active: true
+    severity: "warning"   # TODO: change to error after cleanup
+  SwallowedException:
+    active: true
+    severity: "error"     # Real bug
+  ThrowingExceptionsWithoutMessageOrCause:
+    active: true
+    severity: "error"
+  TooGenericExceptionThrown:
+    active: true
+    severity: "error"
+  RethrowCaughtException:
+    active: true
+    severity: "error"
+
+################################################################################
+# NAMING
+################################################################################
+naming:
+  active: true
+  InvalidPackageDeclaration:
+    active: true
+    severity: "error"     # your test package issue should be fixed
+  MatchingDeclarationName:
+    active: true
+    mustBeFirst: true
+    severity: "warning"   # TODO: error later
+
+################################################################################
+# PERFORMANCE
+################################################################################
+performance:
+  active: true
+  UnnecessaryTemporaryInstantiation:
+    active: true
+    severity: "warning"
+
+################################################################################
+# POTENTIAL BUGS (ALL ERROR → these are real issues)
+################################################################################
+potential-bugs:
+  active: true
+  UnsafeCallOnNullableType:
+    active: true
+    severity: "error"
+  HasPlatformType:
+    active: true
+    severity: "warning"
+  IteratorNotThrowingNoSuchElementException:
+    active: true
+    severity: "warning"
+  ImplicitDefaultLocale:
+    active: true
+    severity: "warning"
+
+################################################################################
+# STYLE (Balanced = all warnings, none fail build)
+################################################################################
+style:
+  active: true
+
+  MagicNumber:
+    active: true
+    ignoreNumbers: ['-1', '0', '1', '2']
+    ignorePropertyDeclaration: true
+    ignoreConstantDeclaration: true
+    severity: "warning"   # TODO: error later
+
+  MaxLineLength:
+    active: true
+    maxLineLength: 140
+    excludePackageStatements: true
+    excludeImportStatements: true
+    severity: "warning"   # TODO: error later
+
+  UnusedImport:
+    active: true
+    severity: "warning"
+
+  UnusedPrivateClass:
+    active: true
+    severity: "warning"
+
+  UnusedPrivateFunction:
+    active: true
+    severity: "warning"
+
+  UnusedPrivateProperty:
+    active: true
+    severity: "warning"
+
+  ReturnCount:
+    active: true
+    max: 4
+    severity: "warning"   # TODO: error later
+
+  ThrowsCount:
+    active: true
+    max: 4
+    severity: "warning"   # TODO: error later

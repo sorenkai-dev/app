@@ -4,20 +4,21 @@
 .gitattributes
 
 # IDE / tooling
-.idea
+.idea/
 *.iml
-.vscode
+.vscode/
 *.swp
 
 # Gradle & build outputs
-.gradle
-build
-out
-**/build
-**/out
+.gradle/
+build/
+**/build/
+out/
+**/out/
+**/test-results/
 
 # Node/other
-node_modules
+node_modules/
 
 # Local secrets & envs
 .env
@@ -27,7 +28,6 @@ secrets/
 *.p12
 *.pem
 *.crt
-firebase-service-account.json
 
 # OS noise
 .DS_Store

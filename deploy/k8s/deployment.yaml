@@ -53,16 +53,6 @@ spec:
                 secretKeyRef:
                   name: sorenkai-api-secrets
                   key: MONGODB_URI
-            - name: FIREBASE_PROJECT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: sorenkai-api-secrets
-                  key: FIREBASE_PROJECT_ID
-            - name: FIREBASE_RTDB_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: sorenkai-api-config
-                  key: FIREBASE_RTDB_URL
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /var/run/secrets/google
             - name: SHUTDOWN_GRACE_SECONDS

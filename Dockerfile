@@ -1,13 +1,9 @@
 # ---- Build stage -------------------------------------------------------------
 FROM eclipse-temurin:24-jdk AS build
 
-# Optionally accept a Mongo URI at build-time (useful for baking defaults in dev images)
-ARG MONGODB_URI="mongodb://localhost:27017/sorenkai?retryWrites=false"
-ENV MONGODB_URI=${MONGODB_URI}
-
 WORKDIR /workspace
 
-# Copy only files that affect dependency resolution first (better caching)
+# Gradle wrapper & root config (cache-friendly)
 COPY gradle gradle
 COPY gradlew .
 COPY settings.gradle.kts .
@@ -15,55 +11,61 @@ COPY build.gradle.kts .
 COPY gradle.properties .
 COPY gradle/libs.versions.toml gradle/libs.versions.toml
 
-# Ensure wrapper is executable
 RUN chmod +x ./gradlew
 
-# Pre-fetch dependencies (cache-friendly warmup)
-RUN ./gradlew --no-daemon --stacktrace -x test help || true
+# Copy module build files early (Renovate-safe)
+COPY auth/build.gradle.kts auth/
+COPY common/build.gradle.kts common/
+COPY community/build.gradle.kts community/
+COPY core/build.gradle.kts core/
+COPY infrastructure/build.gradle.kts infrastructure/
+COPY reports/build.gradle.kts reports/
+COPY server/build.gradle.kts server/
+COPY writings/build.gradle.kts writings/
 
-# Now copy sources
-COPY src src
+# Warm dependency cache
+RUN ./gradlew --no-daemon -x test help || true
 
-# Build a fat jar using the Ktor/Shadow task configured by the Ktor plugin
-RUN ./gradlew --no-daemon --stacktrace buildFatJar
+# Copy full source tree
+COPY auth auth
+COPY common common
+COPY community community
+COPY core core
+COPY infrastructure infrastructure
+COPY reports reports
+COPY server server
+COPY writings writings
+
+# Build only the server fat jar
+RUN ./gradlew --no-daemon :server:buildFatJar
 
 # ---- Runtime stage -----------------------------------------------------------
 FROM eclipse-temurin:24-jre
 
-# Accept the same build arg in the runtime stage and expose it as ENV (overridable at run-time)
-ARG MONGODB_URI="mongodb://localhost:27017/sorenkai?retryWrites=false"
-ENV MONGODB_URI=${MONGODB_URI}
-
 ENV LANG=C.UTF-8
 
-# Install curl for healthcheck (do this as root before switching user)
+# Install curl (for healthcheck only)
 RUN apt-get update \
  && apt-get upgrade -y \
  && apt-get install -y --no-install-recommends curl \
  && rm -rf /var/lib/apt/lists/* # Clean up the cache to keep the image size small
 
-# Create a non-root user for security
+# Non-root user
 RUN useradd -ms /bin/bash appuser
-
 WORKDIR /app
 
-# Copy fat JAR produced by the build stage
-COPY --from=build /workspace/build/libs/*-all.jar /app/app.jar
+# Copy server fat JAR
+COPY --from=build /workspace/server/build/libs/*-all.jar /app/app.jar
 
-# Drop privileges
 USER appuser
 
-# Expose default Ktor port
 EXPOSE 8080
 
-# Environment defaults (can be overridden at runtime)
 ENV PORT=8080 \
     JAVA_OPTS="" \
     ENABLE_JVM_METRICS=true
 
-# Healthcheck: use curl (wget isn't in the base image by default)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
   CMD curl -fsS "http://127.0.0.1:${PORT}/serverhealth" > /dev/null || exit 1
 
-# Run
-ENTRYPOINT [ "sh", "-lc", "exec java -Djansi.passthrough=true $JAVA_OPTS -jar /app/app.jar -port=${PORT}" ]
+ENTRYPOINT ["sh", "-lc", "exec java -Djansi.passthrough=true $JAVA_OPTS -jar /app/app.jar -port=${PORT}"]

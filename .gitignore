@@ -38,7 +38,6 @@ out/
 ### Env File ###
 .env
 secrets/
-firebase-service-account.json
 *.keystore
 *.p12
 *.pem

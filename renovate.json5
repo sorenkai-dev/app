@@ -1,0 +1,84 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
+  // --- BASIC CONFIG ---
+  "extends": [
+    "config:base",
+    ":disableRateLimiting",
+    ":semanticCommits",
+    ":timezone(America/New_York)"
+  ],
+
+  "enabledManagers": [
+    "gradle",
+    "dockerfile",
+    "github-actions"
+  ],
+
+  "branchPrefix": "renovate/",
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 3,
+  "rebaseWhen": "auto",
+
+  // --- AUTO-MERGE RULES ---
+  // Safe, controlled: minor/patch only, CI must pass.
+  "packageRules": [
+    {
+      "matchManagers": ["gradle"],
+      "groupName": "Kotlin + Ktor stack",
+      "matchPackagePatterns": [
+        "^org.jetbrains.kotlin",
+        "^io.ktor",
+        "^org.koin",
+        "^io.insert-koin",
+        "^org.jetbrains.exposed",
+        "^org.mongodb",
+        "^com.fasterxml.jackson",
+        "^org.slf4j",
+        "^ch.qos.logback"
+      ]
+    },
+    {
+      "matchManagers": ["gradle"],
+      "groupName": "Testing libs",
+      "matchPackagePatterns": [
+        "^org.junit",
+        "^io.mockk",
+        "^org.jetbrains.kotlinx:kotlinx-coroutines-test"
+      ]
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "Actions updates"
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "groupName": "Docker base image updates"
+    },
+
+    // --- Auto-merge for PATCH + MINOR only ---
+    {
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr",        // Merge PR after CI completes successfully
+      "automergeStrategy": "merge"  // No rebase squashing; clean history
+    }
+  ],
+
+  // --- MAJOR UPDATES ARE NEVER AUTO-MERGED ---
+  "major": {
+    "dependencyDashboardApproval": true
+  },
+
+  // Keep JVM pinned (no JDK 25 surprise)
+  "ignoreDeps": [
+    "eclipse-temurin"
+  ],
+
+  // Ignore build dirs globally
+  "gradle": {
+    "ignorePaths": [
+      "**/build/**"
+    ]
+  }
+}

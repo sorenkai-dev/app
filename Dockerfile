@@ -46,8 +46,9 @@ ENV LANG=C.UTF-8
 
 # Install curl (for healthcheck only)
 RUN apt-get update \
+ && apt-get upgrade -y \
  && apt-get install -y --no-install-recommends curl \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* # Clean up the cache to keep the image size small
 
 # Non-root user
 RUN useradd -ms /bin/bash appuser

@@ -4,6 +4,12 @@ import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
+import com.sorenkai.common.util.Constants.MONGO_CONNECT_TIMEOUT_DEFAULT
+import com.sorenkai.common.util.Constants.MONGO_MAX_POOL_DEFAULT
+import com.sorenkai.common.util.Constants.MONGO_MIN_POOL_DEFAULT
+import com.sorenkai.common.util.Constants.MONGO_SERVER_SELECTION_DEFAULT
+import com.sorenkai.common.util.Constants.MONGO_SOCKET_TIMEOUT_DEFAULT
+import com.sorenkai.common.util.Constants.MONGO_WAIT_QUEUE_DEFAULT
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.SerializersModule
 import org.bson.UuidRepresentation
@@ -70,13 +76,41 @@ object Mongo {
                 ?: System.getenv("MONGODB_URI")
                 ?: "mongodb://localhost:27017/sorenkai?retryWrites=false"
 
-        val maxPool = (System.getenv("MONGO_MAX_POOL_SIZE") ?: "50").toIntOrNull() ?: 50
-        val minPool = (System.getenv("MONGO_MIN_POOL_SIZE") ?: "0").toIntOrNull() ?: 0
-        val waitQueueMs = (System.getenv("MONGO_WAIT_QUEUE_MS") ?: "5000").toIntOrNull() ?: 5000
-        val connectTimeoutMs = (System.getenv("MONGO_CONNECT_TIMEOUT_MS") ?: "3000").toIntOrNull() ?: 3000
-        val socketTimeoutMs = (System.getenv("MONGO_SOCKET_TIMEOUT_MS") ?: "5000").toIntOrNull() ?: 5000
-        val serverSelectionMs = (System.getenv("MONGO_SERVER_SELECTION_MS") ?: "3000").toIntOrNull() ?: 3000
-        val retryWrites = (System.getenv("MONGO_RETRY_WRITES") ?: "true").equals("true", ignoreCase = true)
+        val maxPool =
+            (
+                System.getenv("MONGO_MAX_POOL_SIZE")
+                    ?: "50"
+            ).toIntOrNull() ?: MONGO_MAX_POOL_DEFAULT
+        val minPool =
+            (
+                System.getenv("MONGO_MIN_POOL_SIZE")
+                    ?: "0"
+            ).toIntOrNull() ?: MONGO_MIN_POOL_DEFAULT
+        val waitQueueMs =
+            (
+                System.getenv("MONGO_WAIT_QUEUE_MS")
+                    ?: "5000"
+            ).toIntOrNull() ?: MONGO_WAIT_QUEUE_DEFAULT
+        val connectTimeoutMs =
+            (
+                System.getenv("MONGO_CONNECT_TIMEOUT_MS")
+                    ?: "3000"
+            ).toIntOrNull() ?: MONGO_CONNECT_TIMEOUT_DEFAULT
+        val socketTimeoutMs =
+            (
+                System.getenv("MONGO_SOCKET_TIMEOUT_MS")
+                    ?: "5000"
+            ).toIntOrNull() ?: MONGO_SOCKET_TIMEOUT_DEFAULT
+        val serverSelectionMs =
+            (
+                System.getenv("MONGO_SERVER_SELECTION_MS")
+                    ?: "3000"
+            ).toIntOrNull() ?: MONGO_SERVER_SELECTION_DEFAULT
+        val retryWrites =
+            (
+                System.getenv("MONGO_RETRY_WRITES")
+                    ?: "true"
+            ).equals("true", ignoreCase = true)
 
         val pojo = PojoCodecProvider.builder().automatic(true).build()
         val codecs =

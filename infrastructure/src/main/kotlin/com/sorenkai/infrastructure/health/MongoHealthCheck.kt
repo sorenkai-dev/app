@@ -1,5 +1,14 @@
 package com.sorenkai.infrastructure.health
 
+import com.sorenkai.common.util.Constants.MAX_MSG_SIZE
+import com.sorenkai.common.util.Constants.TIMEOUT
+import com.sorenkai.core.health.ComponentStatus
+import com.sorenkai.core.health.HealthCheck
+import com.sorenkai.infrastructure.interfaces.IMongoDatabaseProvider
+import kotlinx.coroutines.withTimeout
+import org.bson.BsonDocument
+import org.bson.BsonInt32
+
 /**
  * Health check for MongoDB connectivity.
  *
@@ -8,25 +17,27 @@ package com.sorenkai.infrastructure.health
  * to avoid hanging the health endpoint if the database is slow or unreachable.
  *
  * ### Behavior:
- * - On success: returns [com.sorenkai.server.health.ComponentStatus] with `ok = true`.
- * - On failure: catches any [Throwable] and returns `ok = false` with the error message
+ * - On success: returns [ComponentStatus] with `ok = true`.
+ * - On failure: catches any [Exception] and returns `ok = false` with the error message
  *   (truncated to 300 characters for readability).
  *
  * ### Purpose:
  * - Provides a simple signal for `/serverhealth` to confirm that MongoDB is available.
  * - Useful for operators and monitoring systems to quickly detect DB outages or misconfigurations.
  */
-class MongoHealthCheck { /*: HealthCheck {
+class MongoHealthCheck(
+    private val databaseProvider: Lazy<IMongoDatabaseProvider>,
+) : HealthCheck {
     override val name: String = "mongo"
 
     override suspend fun check(): ComponentStatus =
         try {
-            withTimeout(5000) {
-                val db = Mongo.db
+            withTimeout(TIMEOUT) {
+                val db = databaseProvider.value.database
                 db.runCommand<BsonDocument>(BsonDocument("ping", BsonInt32(1)))
                 ComponentStatus(ok = true)
             }
-        } catch (t: Throwable) {
-            ComponentStatus(ok = false, error = t.message?.take(300))
-        }*/
+        } catch (expected: Exception) {
+            ComponentStatus(ok = false, error = expected.message?.take(MAX_MSG_SIZE))
+        }
 }

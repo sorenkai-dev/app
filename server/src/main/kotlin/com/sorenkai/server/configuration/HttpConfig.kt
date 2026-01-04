@@ -1,12 +1,13 @@
 package com.sorenkai.server.configuration
 
-import com.sorenkai.server.errors.ErrorBody
+import com.sorenkai.common.util.Constants.MAX_AGE_IN_SECONDS
+import com.sorenkai.common.util.Constants.MAX_UPLOAD_BYTES
+import com.sorenkai.common.util.Constants.MAX_UPLOAD_MB
 import com.sorenkai.server.errors.ErrorCode
-import com.sorenkai.server.errors.ErrorResponses
+import com.sorenkai.server.errors.errorHandler
 import io.ktor.http.CacheControl
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.CachingOptions
 import io.ktor.server.application.Application
 import io.ktor.server.application.createApplicationPlugin
@@ -20,7 +21,6 @@ import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.plugins.forwardedheaders.ForwardedHeaders
 import io.ktor.server.request.path
-import io.ktor.server.response.respond
 import kotlin.text.toLongOrNull
 
 /**
@@ -111,15 +111,15 @@ fun Application.configureHttp() {
         header("Referrer-Policy", "no-referrer")
         header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
         // Advertise current API version for client diagnostics
-        header("X-API-Version", "v1")
+        header("X-API-Version", "v2")
         if (enableHsts) {
             header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
         }
     }
 
     // Lightweight request size guard (applies to all requests with Content-Length)
-    val maxUploadMb = (System.getenv("MAX_UPLOAD_MB") ?: "10").toLongOrNull()?.coerceAtLeast(1) ?: 10
-    val maxBytes = maxUploadMb * 1024 * 1024
+    val maxUploadMb = MAX_UPLOAD_MB
+    val maxBytes = maxUploadMb * MAX_UPLOAD_BYTES
 
     /**
      * Custom lightweight plugin to reject requests with a `Content-Length` exceeding
@@ -135,17 +135,10 @@ fun Application.configureHttp() {
             onCall { call ->
                 val cl = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
                 if (cl != null && cl > maxBytes) {
-                    call.respond(
-                        HttpStatusCode.PayloadTooLarge,
-                        ErrorResponses(
-                            ok = false,
-                            error =
-                                ErrorBody(
-                                    code = ErrorCode.TOO_LARGE.name,
-                                    message = "Request entity too large (>$maxUploadMb MB)",
-                                    details = mapOf("maxBytes" to maxBytes.toString()),
-                                ),
-                        ),
+                    call.errorHandler(
+                        ErrorCode.TOO_LARGE,
+                        "Request entity too large (>$maxUploadMb MB)",
+                        mapOf("maxBytes" to maxBytes.toString()),
                     )
                     return@onCall
                 }
@@ -163,6 +156,7 @@ fun Application.configureHttp() {
                 HttpHeaders.Accept.lowercase(),
                 HttpHeaders.Origin.lowercase(),
                 HttpHeaders.UserAgent.lowercase(),
+                HttpHeaders.XForwardedFor.lowercase(),
                 -> true
                 else -> false
             }
@@ -177,7 +171,7 @@ fun Application.configureHttp() {
         // Disable credentials in production
         val isProd = System.getenv("ENV")?.equals("prod", ignoreCase = true) == true
         allowCredentials = !isProd
-        maxAgeInSeconds = 3600
+        maxAgeInSeconds = MAX_AGE_IN_SECONDS
 
         // From env: e.g. "http://localhost:5173, https://sorenkai.com, https://www.sorenkai.com"
         allowHostsFromEnv(System.getenv("ALLOWED_ORIGINS"))

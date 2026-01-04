@@ -32,13 +32,13 @@ object Sanitizer {
     // (?i) = case-insensitive; capture the header name and scheme, replace the credential with [REDACTED]
     private val authHeaderRegex =
         Regex(
-            pattern = """(?i)(authorization\s*[:=]\s*bearer)\s+([^\s\"]+)""",
+            pattern = """"(?i)(authorization\s*[:=]\s*bearer\s*)([^\s"]+)""",
         )
 
     // JSON style: "authorization":"Bearer token" (allow spaces after colon)
     private val authJsonRegex =
         Regex(
-            pattern = """(?i)("authorization"\s*:\s*"bearer)\s+([^"]+)""",
+            pattern = """(?i)("authorization"\s*:\s*"bearer\s*)([^"]+)""",
         )
 
     // Mask email addresses (basic pattern)

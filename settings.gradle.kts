@@ -8,7 +8,6 @@ dependencyResolutionManagement {
     }
 }
 
-include(":admin")
 include(":auth")
 include(":core")
 include(":common")
@@ -16,3 +15,4 @@ include(":infrastructure")
 include(":community")
 include(":writings")
 include(":server")
+include(":reports")

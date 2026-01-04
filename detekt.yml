@@ -1,8 +1,8 @@
 config:
   validation: true
   warningsAsErrors: false
-  checkExhaustiveness: true
-  excludes: []
+  checkExhaustiveness: false
+  excludes:
 
 processors:
   active: true
@@ -46,6 +46,9 @@ complexity:
   TooManyFunctions:
     active: true
     allowedFunctionsPerClass: 20
+    allowedFunctionsPerInterface: 20  # Add this line
+    allowedFunctionsPerObject: 20     # Optional: good for large companion objects
+    allowedFunctionsPerFile: 20
     severity: "warning"   # TODO: change to error after refactor
   LargeClass:
     active: true

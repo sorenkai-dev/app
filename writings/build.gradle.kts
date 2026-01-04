@@ -13,7 +13,8 @@ dependencies {
 
     // Common utilities (optional for DTO helpers, result types, etc.)
     implementation(project(":common"))
-    implementation(project(":auth"))
+
+    implementation(project(":infrastructure"))
 
     // Serialization for writing metadata, DTO definitions, etc.
     implementation(libs.kotlinx.serialization.json)
@@ -22,4 +23,5 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit.api)
     testRuntimeOnly(libs.junit.engine)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

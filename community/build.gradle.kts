@@ -13,7 +13,6 @@ dependencies {
 
     // Common utilities (optional — but safe to include for future helpers)
     implementation(project(":common"))
-    implementation(project(":auth"))
 
     // Serialization for community DTOs / requests / responses
     implementation(libs.kotlinx.serialization.json)
@@ -22,4 +21,5 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit.api)
     testRuntimeOnly(libs.junit.engine)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

@@ -22,7 +22,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent
  *
  * ```xml
  * <configuration>
- *   <conversionRule conversionWord="sanitizeMsg"
+ *   <conversionRule conversionWord="sanmsg"
  *                   converterClass="com.sorenkai.common.logging.SanitizingMessageConverter" />
  *
  *   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">

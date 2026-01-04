@@ -266,11 +266,11 @@ paths:
             type: string
             description: Opaque cursor returned by previous page
         - in: query
-          name: writingSlug
+          name: writingId
           schema:
             type: string
             nullable: true
-          description: Optional slug of a writing to filter threads
+          description: Optional ID of a writing to filter threads
         - in: query
           name: parentId
           schema:
@@ -583,11 +583,12 @@ components:
         seoDescription: { type: string, nullable: true }
         stats:
           type: object
-          required: [commentCount, viewCount, likeCount, shareCount, salesClicks]
+          required: [commentCount, viewCount, likesCount, shareCount, salesClicks]
           properties:
             commentCount: { type: integer, minimum: 0 }
             viewCount: { type: integer, minimum: 0 }
-            likeCount: { type: integer, minimum: 0 }
+            likesCount: { type: integer, minimum: 0 }
+            isLikedByMe: { type: boolean, default: false }
             shareCount: { type: integer, minimum: 0 }
             salesClicks: { type: integer, minimum: 0 }
 
@@ -626,7 +627,7 @@ components:
       type: object
       properties:
         slug: { type: string }
-        likeCount: { type: integer }
+        likesCount: { type: integer }
 
     ViewResponse:
       type: object
@@ -648,7 +649,7 @@ components:
         kind:
           type: string
           enum: [POST, COMMENT]
-        writingSlug:
+        writingId:
           type: string
           nullable: true
         parentId:
@@ -666,7 +667,7 @@ components:
         kind:
           type: string
           enum: [POST, COMMENT]
-        writingSlug: { type: string, nullable: true }
+        writingId: { type: string, nullable: true }
         parentId: { type: string, nullable: true }
         body: { type: string }
 

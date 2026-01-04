@@ -1,5 +1,9 @@
 package com.sorenkai.server
 
+import com.sorenkai.common.util.Constants.BASE_MILLIS
+import com.sorenkai.common.util.Constants.DEFAULT_PORT
+import com.sorenkai.common.util.Constants.SHUTDOWN_GRACE_DEFAULT
+import com.sorenkai.common.util.Constants.SHUTDOWN_TIMEOUT_DEFAULT
 import com.sorenkai.server.configuration.configureExceptionMapping
 import com.sorenkai.server.configuration.configureFrameworks
 import com.sorenkai.server.configuration.configureHttp
@@ -29,7 +33,7 @@ fun main() {
     System.setProperty("org.fusesource.jansi.disable", "true")
     System.setProperty("jansi.passthrough", "true")
 
-    val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
+    val port = System.getenv("PORT")?.toIntOrNull() ?: DEFAULT_PORT
 
     val server =
         embeddedServer(Netty, port = port, host = "0.0.0.0") {
@@ -37,10 +41,18 @@ fun main() {
         }
 
     // Graceful shutdown configuration via env vars
-    val graceSeconds = (System.getenv("SHUTDOWN_GRACE_SECONDS") ?: "5").toLongOrNull()?.coerceAtLeast(0) ?: 5
-    val timeoutSeconds = (System.getenv("SHUTDOWN_TIMEOUT_SECONDS") ?: "10").toLongOrNull()?.coerceAtLeast(1) ?: 10
-    val graceMillis = graceSeconds * 1000L
-    val timeoutMillis = timeoutSeconds * 1000L
+    val graceSeconds =
+        (
+            System.getenv("SHUTDOWN_GRACE_SECONDS")
+                ?: "5"
+        ).toLongOrNull()?.coerceAtLeast(0) ?: SHUTDOWN_GRACE_DEFAULT
+    val timeoutSeconds =
+        (
+            System.getenv("SHUTDOWN_TIMEOUT_SECONDS")
+                ?: "10"
+        ).toLongOrNull()?.coerceAtLeast(1) ?: SHUTDOWN_TIMEOUT_DEFAULT
+    val graceMillis = graceSeconds * BASE_MILLIS
+    val timeoutMillis = timeoutSeconds * BASE_MILLIS
 
     Runtime.getRuntime().addShutdownHook(
         Thread {
@@ -65,12 +77,4 @@ fun Application.module() {
     configureSecurity()
     configureMonitoring()
     configureRouting()
-
-//    val dbName = Mongo.db.name
-//    log.info("------- \n\n Starting database $dbName \n\n -------")
-//    CoroutineScope(Dispatchers.IO).launch {
-//        runCatching { initRepos() }.onFailure {
-//            environment.log.warn("initRepos failed: ${'$'}{it.message}")
-//        }
-//    }
 }

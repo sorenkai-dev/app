@@ -21,8 +21,12 @@ dependencies {
     implementation(libs.mongodb.bson.kotlinx)
     implementation(libs.mongodb.kotlin.coroutine)
 
-    // Testing (basic only — no ktor test host yet, that comes when moving code)
+    // Testing
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit.api)
     testRuntimeOnly(libs.junit.engine)
+
+    // Testcontainers for Mongo integration tests
+    testImplementation(libs.testcontainers)
+    testImplementation(libs.testcontainers.mongodb)
 }

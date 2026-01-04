@@ -8,6 +8,14 @@ kotlin {
     jvmToolchain(24)
 }
 
+application {
+    mainClass.set("com.sorenkai.server.ApplicationKt")
+}
+
+detekt {
+    config = files("$rootDir/detekt.yml")
+}
+
 dependencies {
     // ──────────────── Application Layer Dependencies ────────────────
     // Server depends on ALL business modules (they expose routes/use-cases)
@@ -16,8 +24,8 @@ dependencies {
     implementation(project(":auth"))
     implementation(project(":community"))
     implementation(project(":writings"))
-    implementation(project(":admin"))
     implementation(project(":infrastructure"))
+    implementation(project(":reports"))
 
     // ──────────────── Ktor Server (HTTP engine + middleware) ────────────────
     implementation(libs.ktor.server.core)
@@ -49,9 +57,17 @@ dependencies {
     // ──────────────── Logging ────────────────
     implementation(libs.logback.classic)
 
+    // ──────────────── Redis (Jedis TCP client) ────────────────
+    implementation("redis.clients:jedis:5.2.0")
+
     // ──────────────── Test Support ────────────────
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit.api)
     testRuntimeOnly(libs.junit.engine)
+    testImplementation(libs.kotlinx.coroutines.test)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

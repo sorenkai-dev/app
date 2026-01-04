@@ -1,4 +1,4 @@
-import dev.detekt.gradle.extensions.FailOnSeverity
+import dev.detekt.gradle.extensions.DetektExtension
 
 plugins {
     alias(libs.plugins.kotlin.jvm) apply false
@@ -10,10 +10,6 @@ plugins {
     alias(libs.plugins.ktlint) apply false
 }
 
-//val detektConfigFile = file("$rootDir/detekt.yml")
-//if (!detektConfigFile.exists()) {
-//    throw GradleException("Root detekt.yml not found at: $detektConfigFile")
-//}
 
 
 repositories {
@@ -55,13 +51,15 @@ subprojects {
         }
     }
 
-//    extensions.configure<dev.detekt.gradle.Detekt> {
-////        config = files(detektConfigFile)
-//        buildUponDefaultConfig = false
-//        autoCorrect = true
-//        ignoreFailures = true
-//        failOnSeverity = FailOnSeverity.Never
-//    }
+    plugins.withId("dev.detekt") {
+        extensions.configure<DetektExtension> {
+            // Keep using the root config
+            config.setFrom("${rootDir}/detekt.yml")
+
+            // Only analyze main Kotlin sources for each module
+            source.setFrom(files("src/main/kotlin"))
+        }
+    }
 
     tasks.withType<org.jlleitschuh.gradle.ktlint.tasks.GenerateReportsTask>().configureEach {
         enabled = false
@@ -72,16 +70,6 @@ subprojects {
     }
 }
 
-// Align Kotlin stdlib artifacts to the same version to avoid classpath conflicts during tests
-//val kotlinVersion = libs.versions.kotlin.get()
-//configurations.all {
-//    resolutionStrategy.eachDependency {
-//        if (requested.group == "org.jetbrains.kotlin" && requested.name.startsWith("kotlin-stdlib")) {
-//            useVersion(kotlinVersion)
-//            because("Align Kotlin stdlib to $kotlinVersion for consistent runtime")
-//        }
-//    }
-//}
 
 // Globally exclude vulnerable commons-lang 2.x if any transitive tries to bring it
 configurations.all {

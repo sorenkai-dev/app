@@ -1,9 +1,12 @@
 package com.sorenkai.server.configuration
 
+import com.sorenkai.common.util.Constants.CALL_ID_LENGTH
 import com.sorenkai.server.observability.Metrics
+import com.sorenkai.server.security.UserPrincipal
 import io.ktor.http.ContentType
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.auth.principal
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.callid.CallId
 import io.ktor.server.plugins.callid.callIdMdc
@@ -55,7 +58,7 @@ fun Application.configureMonitoring() {
     // Request ID
     install(CallId) {
         header("X-Request-ID")
-        generate(32)
+        generate(CALL_ID_LENGTH)
         verify { it.isNotBlank() }
     }
 
@@ -65,6 +68,8 @@ fun Application.configureMonitoring() {
         // Structured MDC fields
         mdc("method") { it.request.httpMethod.value }
         mdc("path") { it.request.path() }
+        // Attach authenticated uid to MDC when available
+        mdc("uid") { call -> call.principal<UserPrincipal>()?.user?.uid }
         mdc("status") {
             it.response
                 .status()

@@ -2,6 +2,7 @@ package com.sorenkai.server.configuration
 
 import com.sorenkai.common.util.Constants.VALIDATION_MAX_LENGTH
 import com.sorenkai.core.dto.reports.ReportCreateRequest
+import com.sorenkai.infrastructure.repo.DiscussionsTable.reason
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.requestvalidation.RequestValidation
@@ -41,12 +42,8 @@ fun Application.configureValidation() {
         // Report validation
         validate<ReportCreateRequest> { req ->
             val targetId = req.targetId.trim()
-            val reason = req.reason.trim()
-            val maxLen = VALIDATION_MAX_LENGTH
             when {
                 targetId.isEmpty() -> ValidationResult.Invalid("targetId is required")
-                reason.isEmpty() -> ValidationResult.Invalid("reason is required")
-                reason.length > maxLen -> ValidationResult.Invalid("reason must be <= $maxLen chars")
                 else -> ValidationResult.Valid
             }
         }

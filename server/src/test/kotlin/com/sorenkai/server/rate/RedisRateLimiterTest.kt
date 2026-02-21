@@ -15,6 +15,8 @@ private class FakeJedisAdapter(
         value: String,
         params: SetParams,
     ): String? = behavior()
+
+    override fun get(key: String): String? = behavior()
 }
 
 class RedisRateLimiterTest {

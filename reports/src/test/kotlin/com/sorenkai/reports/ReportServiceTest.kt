@@ -14,22 +14,24 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.ExperimentalTime
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalTime::class)
+@OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
 private class FakeReportRepository : IReportRepository {
-    private val store = ConcurrentHashMap<String, Report>()
+    private val store = ConcurrentHashMap<Uuid, Report>()
 
     override suspend fun create(doc: Report): Report {
         store[doc.id] = doc
         return doc
     }
 
-    override suspend fun findById(id: String): Report? = store[id]
+    override suspend fun findById(id: Uuid): Report? = store[id]
 
     override suspend fun existsOpenOrReviewed(
         createdBy: String,
         targetType: TargetType,
-        targetId: String,
+        targetId: Uuid,
     ): Boolean =
         store.values.any {
             it.createdBy == createdBy &&
@@ -41,7 +43,7 @@ private class FakeReportRepository : IReportRepository {
     override suspend fun listAdmin(
         status: Set<ReportStatus>?,
         targetType: TargetType?,
-        targetId: String?,
+        targetId: Uuid?,
         limit: Int,
         offset: Int,
     ): List<Report> =
@@ -54,7 +56,7 @@ private class FakeReportRepository : IReportRepository {
             .take(limit)
 
     override suspend fun updateStatus(
-        id: String,
+        id: Uuid,
         newStatus: ReportStatus,
     ): Boolean {
         val cur = store[id] ?: return false
@@ -63,28 +65,31 @@ private class FakeReportRepository : IReportRepository {
     }
 }
 
-@OptIn(ExperimentalTime::class)
+@OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
 class ReportServiceTest {
     private val repo = FakeReportRepository()
     private val service = ReportService(repo)
 
+    private val targetId1 = Uuid.random()
+    private val targetId2 = Uuid.random()
+
     @Test
     fun `create success`() =
         runBlocking {
-            val req = ReportCreateRequest(targetType = "POST", targetId = "d1", reason = "spam")
+            val req = ReportCreateRequest(targetType = "POST", targetId = targetId1.toString(), reason = "spam")
             val resp = service.create("u1", req)
             assertEquals("spam", resp.reason)
             assertEquals(ReportStatus.OPEN, resp.status)
 
-            val found = repo.findById(resp.id)
+            val found = repo.findById(Uuid.parse(resp.id))
             assertNotNull(found)
-            assertEquals("u1", found.createdBy)
+            assertEquals("u1", found?.createdBy)
         }
 
     @Test
     fun `create duplicate conflict`(): Unit =
         runBlocking {
-            val req = ReportCreateRequest(targetType = "POST", targetId = "d1", reason = "spam")
+            val req = ReportCreateRequest(targetType = "POST", targetId = targetId1.toString(), reason = "spam")
             service.create("u1", req)
 
             assertThrows(ReportService.ConflictException::class.java) {
@@ -97,49 +102,61 @@ class ReportServiceTest {
         runBlocking {
             // Missing uid
             assertThrows(ReportService.ValidationException::class.java) {
-                runBlocking { service.create("", ReportCreateRequest("POST", "d1", "x")) }
+                runBlocking { service.create("", ReportCreateRequest("POST", targetId1.toString(), "x")) }
             }
             // Invalid targetType
             assertThrows(ReportService.ValidationException::class.java) {
-                runBlocking { service.create("u1", ReportCreateRequest("INVALID", "d1", "x")) }
+                runBlocking { service.create("u1", ReportCreateRequest("INVALID", targetId1.toString(), "x")) }
             }
             // Short reason
             assertThrows(ReportService.ValidationException::class.java) {
-                runBlocking { service.create("u1", ReportCreateRequest("POST", "d1", "")) }
+                runBlocking { service.create("u1", ReportCreateRequest("POST", targetId1.toString(), "")) }
+            }
+            // Invalid UUID
+            assertThrows(ReportService.ValidationException::class.java) {
+                runBlocking { service.create("u1", ReportCreateRequest("POST", "not-a-uuid", "x")) }
             }
         }
 
     @Test
     fun `updateStatus valid transitions`() =
         runBlocking {
-            val r = repo.create(Report(targetType = TargetType.POST, targetId = "d1", reason = "x", createdBy = "u1"))
+            val r = repo.create(Report(targetType = TargetType.POST, targetId = targetId1, reason = "x", createdBy = "u1"))
 
             // OPEN -> IN_REVIEW
-            assertTrue(service.updateStatus("admin", r.id, ReportStatus.IN_REVIEW))
+            assertTrue(service.updateStatus("admin", r.id.toString(), ReportStatus.IN_REVIEW))
             assertEquals(ReportStatus.IN_REVIEW, repo.findById(r.id)?.status)
 
             // IN_REVIEW -> RESOLVED
-            assertTrue(service.updateStatus("admin", r.id, ReportStatus.RESOLVED))
+            assertTrue(service.updateStatus("admin", r.id.toString(), ReportStatus.RESOLVED))
             assertEquals(ReportStatus.RESOLVED, repo.findById(r.id)?.status)
         }
 
     @Test
     fun `updateStatus invalid transitions`(): Unit =
         runBlocking {
-            val r = repo.create(Report(targetType = TargetType.POST, targetId = "d1", reason = "x", createdBy = "u1"))
+            val r = repo.create(Report(targetType = TargetType.POST, targetId = targetId1, reason = "x", createdBy = "u1"))
 
             // OPEN -> RESOLVED (invalid, must go via IN_REVIEW)
             assertThrows(ReportService.ConflictException::class.java) {
-                runBlocking { service.updateStatus("admin", r.id, ReportStatus.RESOLVED) }
+                runBlocking { service.updateStatus("admin", r.id.toString(), ReportStatus.RESOLVED) }
             }
         }
 
     @Test
     fun `listAdmin filtering`() =
         runBlocking {
-            repo.create(Report(targetType = TargetType.POST, targetId = "d1", reason = "r1", createdBy = "u1", status = ReportStatus.OPEN))
             repo.create(
-                Report(targetType = TargetType.WRITING, targetId = "w1", reason = "r2", createdBy = "u1", status = ReportStatus.RESOLVED),
+                Report(targetType = TargetType.POST, targetId = targetId1, reason = "r1", createdBy = "u1", status = ReportStatus.OPEN),
+            )
+            repo.create(
+                Report(
+                    targetType = TargetType.WRITING,
+                    targetId = targetId2,
+                    reason = "r2",
+                    createdBy = "u1",
+                    status = ReportStatus.RESOLVED,
+                ),
             )
 
             val all = service.listAdmin(null, null, null, 10, 0)
@@ -147,7 +164,7 @@ class ReportServiceTest {
 
             val discussions = service.listAdmin(null, TargetType.POST, null, 10, 0)
             assertEquals(1, discussions.size)
-            assertEquals(TargetType.POST, (repo.findById(discussions[0].id) as Report).targetType)
+            assertEquals(TargetType.POST, (repo.findById(Uuid.parse(discussions[0].id)) as Report).targetType)
 
             val resolved = service.listAdmin(setOf(ReportStatus.RESOLVED), null, null, 10, 0)
             assertEquals(1, resolved.size)

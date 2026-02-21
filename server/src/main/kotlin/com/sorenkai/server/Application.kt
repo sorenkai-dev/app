@@ -4,6 +4,7 @@ import com.sorenkai.common.util.Constants.BASE_MILLIS
 import com.sorenkai.common.util.Constants.DEFAULT_PORT
 import com.sorenkai.common.util.Constants.SHUTDOWN_GRACE_DEFAULT
 import com.sorenkai.common.util.Constants.SHUTDOWN_TIMEOUT_DEFAULT
+import com.sorenkai.server.configuration.configureDatabase
 import com.sorenkai.server.configuration.configureExceptionMapping
 import com.sorenkai.server.configuration.configureFrameworks
 import com.sorenkai.server.configuration.configureHttp
@@ -70,6 +71,7 @@ fun main() {
 fun Application.module() {
     validateRequiredConfigOrFail()
     configureFrameworks()
+    configureDatabase()
     configureExceptionMapping()
     configureSerialization()
     configureValidation()

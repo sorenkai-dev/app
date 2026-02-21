@@ -1,18 +1,19 @@
 package com.sorenkai.core.model.reports
 
-import com.sorenkai.common.util.newId
 import kotlinx.serialization.Serializable
 import kotlin.time.Clock.System.now
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Serializable
 data class Report
-    @OptIn(ExperimentalTime::class)
+    @OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
     constructor(
-        val id: String = newId(),
+        val id: Uuid = Uuid.random(),
         val targetType: TargetType,
-        val targetId: String,
+        val targetId: Uuid,
         val reason: String,
         val createdAt: Instant = now(),
         val createdBy: String,

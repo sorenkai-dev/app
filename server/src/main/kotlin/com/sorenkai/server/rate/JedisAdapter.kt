@@ -10,6 +10,8 @@ interface JedisAdapter {
         value: String,
         params: SetParams,
     ): String?
+
+    fun get(key: String): String?
 }
 
 internal class JedisPooledAdapter(
@@ -20,4 +22,6 @@ internal class JedisPooledAdapter(
         value: String,
         params: SetParams,
     ): String? = client.set(key, value, params)
+
+    override fun get(key: String): String? = client.get(key)
 }

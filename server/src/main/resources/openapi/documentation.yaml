@@ -69,12 +69,67 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
-  /v1/writings/{slug}:
+  /v2/writings:
+    post:
+      summary: Upload a new writing (Authenticated)
+      security:
+        - zitadel_auth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Writing'
+      responses:
+        '201':
+          description: Created
+        '401':
+          description: Unauthorized
     get:
-      summary: Get a single writing by slug
+      summary: List published writings (offset pagination)
+      parameters:
+        - in: query
+          name: slug
+          description: Fetch a single writing by slug (backward compatibility)
+          schema:
+            type: string
+        - in: query
+          name: tag
+          schema:
+            type: string
+        - in: query
+          name: lang
+          schema:
+            type: string
+            enum: [en, es]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 12
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Page of writing list items or a single writing detail if slug is provided
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/PageWritingListItem'
+                  - $ref: '#/components/schemas/WritingDetail'
+  /v2/writings/{id}:
+    get:
+      summary: Get a single writing by id
       parameters:
         - in: path
-          name: slug
+          name: id
           required: true
           schema:
             type: string
@@ -86,7 +141,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/WritingDetail'
         '400':
-          description: Missing slug
+          description: Missing id
           content:
             application/json:
               schema:
@@ -109,12 +164,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
-  /v1/writings/{slug}/share:
+  /v2/writings/{id}/share:
     post:
       summary: Increment share count for a writing
       parameters:
         - in: path
-          name: slug
+          name: id
           required: true
           schema:
             type: string
@@ -126,7 +181,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ShareResponse'
         '400':
-          description: Missing slug
+          description: Missing id
           content:
             application/json:
               schema:
@@ -137,12 +192,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
-  /v1/writings/{slug}/like:
+  /v2/writings/{id}/like:
     post:
-      summary: Increment like count for a writing
+      summary: Like a writing (Authenticated)
+      security:
+        - zitadel_auth: []
       parameters:
         - in: path
-          name: slug
+          name: id
           required: true
           schema:
             type: string
@@ -154,7 +211,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/LikeResponse'
         '400':
-          description: Missing slug
+          description: Missing id
           content:
             application/json:
               schema:
@@ -165,24 +222,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
-  /v1/writings/{slug}/unlike:
-    post:
-      summary: Decrement like count for a writing (not below zero)
+    delete:
+      summary: Unlike a writing (Authenticated)
+      security:
+        - zitadel_auth: []
       parameters:
         - in: path
-          name: slug
+          name: id
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Updated like count (idempotent when already 0)
+          description: Updated like count
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LikeResponse'
         '400':
-          description: Missing slug
+          description: Missing id
           content:
             application/json:
               schema:
@@ -193,12 +251,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
-  /v1/writings/{slug}/view:
+  /v2/writings/{id}/view:
     post:
       summary: Increment view count for a writing
       parameters:
         - in: path
-          name: slug
+          name: id
           required: true
           schema:
             type: string
@@ -210,7 +268,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ViewResponse'
         '400':
-          description: Missing slug
+          description: Missing id
           content:
             application/json:
               schema:
@@ -221,12 +279,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorResponse'
-  /v1/writings/{slug}/click-sale:
+  /v2/writings/{id}/click-sale:
     post:
       summary: Increment sales click count for a writing
       parameters:
         - in: path
-          name: slug
+          name: id
           required: true
           schema:
             type: string
@@ -238,7 +296,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SalesClickResponse'
         '400':
-          description: Missing slug
+          description: Missing id
           content:
             application/json:
               schema:
@@ -559,18 +617,58 @@ components:
         format: date-time
         example: "2026-01-01T00:00:00Z"
   schemas:
+    Writing:
+      type: object
+      required: [title, language, slug, writingsStatus, authorId, createdAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        language: { type: string }
+        slug: { type: string }
+        synopsis: { type: string, nullable: true }
+        content: { type: string, nullable: true }
+        writingsStatus:
+          type: string
+          enum: [DRAFT, PUBLISHED, ARCHIVED, SUBMITTED]
+        coverUrl: { type: string, nullable: true }
+        authorId: { type: string }
+        publishedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time, nullable: true }
+        writingsType:
+          type: string
+          enum: [ARTICLE, BOOK]
+        salesLink: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+        featured: { type: boolean, nullable: true }
+        seoDescription: { type: string, nullable: true }
+
+    UserData:
+      type: object
+      required: [userId, username]
+      properties:
+        userId: { type: string }
+        username: { type: string }
+        displayName: { type: string, nullable: true }
+        avatarUrl: { type: string, nullable: true }
+
     WritingListItem:
       type: object
-      required: [slug, title, language, status, type, createdAt]
+      required: [id, slug, title, language, writingsStatus, writingsType, createdAt]
       properties:
+        id: { type: string }
         slug: { type: string }
         title: { type: string }
         language: { type: string, description: "ISO language code (e.g., en, es)" }
+        author:
+          $ref: '#/components/schemas/UserData'
         synopsis: { type: string, nullable: true }
-        status:
+        writingsStatus:
           type: string
           enum: [DRAFT, PUBLISHED, ARCHIVED, SUBMITTED]
-        type:
+        writingsType:
           type: string
           enum: [ARTICLE, BOOK]
         salesLink: { type: string, nullable: true }
@@ -579,6 +677,7 @@ components:
           items: { type: string }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time, nullable: true }
+        publishedAt: { type: string, format: date-time, nullable: true }
         featured: { type: boolean, nullable: true }
         seoDescription: { type: string, nullable: true }
         stats:
@@ -605,60 +704,92 @@ components:
 
     WritingDetail:
       type: object
-      required: [slug, title, body, tags, createdAt, createdBy]
+      required: [id, slug, title, content, tags, createdAt, authorId, writingsStatus, writingsType]
       properties:
+        id: { type: string }
         slug: { type: string }
         title: { type: string }
-        body: { type: string, description: "Markdown content" }
-        summary: { type: string, nullable: true }
+        language: { type: string }
+        author:
+          $ref: '#/components/schemas/UserData'
+        synopsis: { type: string, nullable: true }
+        writingsType:
+          type: string
+          enum: [ARTICLE, BOOK]
+        salesLink: { type: string, nullable: true }
+        content: { type: string, description: "Markdown content" }
+        writingsStatus:
+          type: string
+          enum: [DRAFT, PUBLISHED, ARCHIVED, SUBMITTED]
+        coverUrl: { type: string, nullable: true }
+        authorId: { type: string }
+        publishedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time, nullable: true }
         tags:
           type: array
           items: { type: string }
-        createdAt: { type: string, format: date-time }
-        createdBy: { type: string }
+        featured: { type: boolean, nullable: true }
+        seoDescription: { type: string, nullable: true }
+        stats:
+          type: object
+          required: [commentCount, viewCount, likesCount, shareCount, salesClicks]
+          properties:
+            commentCount: { type: integer, minimum: 0 }
+            viewCount: { type: integer, minimum: 0 }
+            likesCount: { type: integer, minimum: 0 }
+            isLikedByMe: { type: boolean, default: false }
+            shareCount: { type: integer, minimum: 0 }
+            salesClicks: { type: integer, minimum: 0 }
 
     ShareResponse:
       type: object
       properties:
-        slug: { type: string }
+        id: { type: string }
         shareCount: { type: integer }
 
     LikeResponse:
       type: object
       properties:
-        slug: { type: string }
+        id: { type: string }
         likesCount: { type: integer }
 
     ViewResponse:
       type: object
       properties:
-        slug: { type: string }
+        id: { type: string }
         viewCount: { type: integer }
 
     SalesClickResponse:
       type: object
       properties:
-        slug: { type: string }
+        id: { type: string }
         salesClicks: { type: integer }
 
     Discussion:
       type: object
-      required: [id, kind, body, userId, createdAt]
+      required: [id, kind, body, userId, status, createdAt]
       properties:
         id: { type: string }
         kind:
           type: string
           enum: [POST, COMMENT]
-        writingId:
-          type: string
-          nullable: true
-        parentId:
-          type: string
-          nullable: true
-        body: { type: string }
+        writingId: { type: string, nullable: true }
+        parentId: { type: string, nullable: true }
         userId: { type: string }
+        author:
+          $ref: '#/components/schemas/UserData'
+        body: { type: string }
+        status:
+          type: string
+          enum: [VISIBLE, HIDDEN_BY_REPORTS, HIDDEN_BY_MODERATOR, DELETED_BY_AUTHOR, DELETED_BY_MODERATOR]
+        reason: { type: string, nullable: true }
+        isPinned: { type: boolean }
+        isLocked: { type: boolean }
+        likesCount: { type: integer }
+        isLikedByMe: { type: boolean }
         createdAt: { type: string, format: date-time }
-        editedAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
 
     DiscussionCreateRequest:
       type: object
@@ -670,6 +801,12 @@ components:
         writingId: { type: string, nullable: true }
         parentId: { type: string, nullable: true }
         body: { type: string }
+        lang: { type: string, default: en }
+        status:
+          type: string
+          enum: [VISIBLE, HIDDEN_BY_REPORTS, HIDDEN_BY_MODERATOR, DELETED_BY_AUTHOR, DELETED_BY_MODERATOR]
+          nullable: true
+        createdAt: { type: string, format: date-time, nullable: true }
 
     PageDiscussion:
       type: object

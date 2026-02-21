@@ -76,7 +76,9 @@ fun Application.configureSecurity() {
             }
 
         install(Authentication) {
+            securityLog.warn("Registering Zitadel authentication provider")
             jwt("zitadel") {
+                securityLog.warn("Registering Zitadel authentication provider with issuer=$issuer, audience=$audience")
                 verifier(
                     JWT
                         .require(Algorithm.RSA256(rsaKeyProvider))
@@ -84,8 +86,11 @@ fun Application.configureSecurity() {
                         .withAudience(audience)
                         .build(),
                 )
-
+                securityLog.warn("Creating JWT verifier")
                 validate { credential ->
+                    securityLog.warn("Validating JWT credential")
+                    securityLog.warn("Extracting subject from JWT credential")
+                    securityLog.warn("JWT credential: $credential")
                     val uid = credential.subject
                     if (uid.isNullOrBlank()) {
                         securityLog.debug("Auth failure: missing subject")
@@ -96,7 +101,7 @@ fun Application.configureSecurity() {
                         .UserPrincipal(AuthUser(uid = uid, roles = roles))
                 }
                 challenge { _, _ ->
-                    call.respond(HttpStatusCode.NotFound)
+                    call.respond(HttpStatusCode.Unauthorized)
                 }
             }
         }

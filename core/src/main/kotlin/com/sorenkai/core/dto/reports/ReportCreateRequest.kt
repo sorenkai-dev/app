@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class ReportCreateRequest(
-    val targetType: String, // e.g., "DISCUSSION" | "WRITING" | "COMMENT"
+    val targetType: String,
     val targetId: String,
     val reason: String,
 )

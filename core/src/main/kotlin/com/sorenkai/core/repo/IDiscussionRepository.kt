@@ -6,13 +6,40 @@ import com.sorenkai.core.model.community.discussions.Discussion
 import com.sorenkai.core.model.community.discussions.DiscussionsStatus
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+data class DiscussionWithLikes(
+    val discussion: Discussion,
+    val likesCount: Long,
+    val isLikedByMe: Boolean,
+    val isReportedByMe: Boolean = false,
+)
+
+enum class DiscussionOrder {
+    NEWEST,
+    OLDEST,
+}
+
+@OptIn(ExperimentalUuidApi::class)
 interface IDiscussionRepository {
-    // Creation
+    /* =======================
+       Creation
+       ======================= */
+
     suspend fun insert(discussion: Discussion): Discussion
 
-    // Reads
-    suspend fun findById(id: String): Discussion?
+    /* =======================
+       Reads
+       ======================= */
+
+    suspend fun findById(id: Uuid): Discussion?
+
+    suspend fun findByIdWithLikes(
+        id: Uuid,
+        currentUserId: UID? = null,
+        isModerator: Boolean = false,
+    ): DiscussionWithLikes?
 
     suspend fun listPosts(
         writingId: String?,
@@ -20,40 +47,63 @@ interface IDiscussionRepository {
         statuses: Set<DiscussionsStatus>,
         limit: Int,
         offset: Int,
-    ): List<Discussion>
+        currentUserId: UID? = null,
+        isModerator: Boolean = false,
+        order: DiscussionOrder = DiscussionOrder.NEWEST,
+    ): List<DiscussionWithLikes>
 
     suspend fun listComments(
-        parentId: String,
+        parentId: Uuid,
         statuses: Set<DiscussionsStatus>,
         limit: Int,
         offset: Int,
-    ): List<Discussion>
+        currentUserId: UID? = null,
+        isModerator: Boolean = false,
+    ): List<DiscussionWithLikes>
 
-    // Author-level mutation
+    suspend fun countChildren(parentIds: Set<Uuid>): Map<Uuid, Int>
+
+    /* =======================
+       Author-level mutation
+       ======================= */
+
     @OptIn(ExperimentalTime::class)
     suspend fun updateBody(
-        id: String,
+        id: Uuid,
         body: String,
         updatedAt: Instant,
-    ): Boolean
+        currentUserId: UID? = null,
+    ): DiscussionWithLikes?
 
-    // Moderation / Admin mutations
+    /* =======================
+       Moderation / Admin
+       ======================= */
+
     @OptIn(ExperimentalTime::class)
     suspend fun setStatus(
-        id: String,
+        id: Uuid,
         status: DiscussionsStatus,
         moderatedBy: UID?,
         moderatedAt: Instant?,
         reason: String?,
-    ): Boolean
+        deletedAt: Instant? = null,
+        purgeAt: Instant? = null,
+        currentUserId: UID? = null,
+    ): DiscussionWithLikes?
 
     suspend fun setPinned(
-        id: String,
+        id: Uuid,
         pinned: Boolean,
     ): UpdateResult
 
     suspend fun setLocked(
-        id: String,
+        id: Uuid,
         locked: Boolean,
     ): UpdateResult
+
+    @OptIn(ExperimentalTime::class)
+    suspend fun restore(
+        id: Uuid,
+        currentUserId: UID? = null,
+    ): DiscussionWithLikes?
 }

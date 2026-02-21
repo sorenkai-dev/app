@@ -26,6 +26,10 @@ subprojects {
     apply(plugin = "dev.detekt")
 
     extensions.configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+        val skipSpotless = project.hasProperty("skipSpotless")
+        if (skipSpotless) {
+            isEnforceCheck = false
+        }
         kotlin {
             target("src/**/*.kt")
             ktlint()

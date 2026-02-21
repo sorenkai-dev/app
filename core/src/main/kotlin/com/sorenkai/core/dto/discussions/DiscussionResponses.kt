@@ -1,13 +1,15 @@
 package com.sorenkai.core.dto.discussions
 
+import com.sorenkai.core.auth.UserData
 import com.sorenkai.core.model.auth.UID
 import com.sorenkai.core.model.community.discussions.Discussion
 import com.sorenkai.core.model.community.discussions.DiscussionsStatus
 import com.sorenkai.core.model.community.discussions.Kind
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * Public projection for discussions returned to the frontend.
@@ -15,13 +17,14 @@ import kotlin.time.Instant
  */
 @Serializable
 data class DiscussionResponsePublic
-    @OptIn(ExperimentalTime::class)
+    @OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
     constructor(
-        val id: String,
+        val id: Uuid,
         val kind: Kind,
         val writingId: String? = null,
-        val parentId: String? = null,
+        val parentId: Uuid? = null,
         val userId: String,
+        val author: UserData? = null,
         val body: String,
         // Moderation (public-safe subset)
         val status: DiscussionsStatus,
@@ -32,9 +35,11 @@ data class DiscussionResponsePublic
         // Engagement
         val likesCount: Int = 0,
         val isLikedByMe: Boolean = false,
+        val isReportedByMe: Boolean = false,
+        val childCount: Int = 0,
         // Timestamps
-        @Contextual val createdAt: Instant,
-        @Contextual val updatedAt: Instant? = null,
+        val createdAt: Instant,
+        val updatedAt: Instant? = null,
     )
 
 /**
@@ -43,35 +48,39 @@ data class DiscussionResponsePublic
  */
 @Serializable
 data class DiscussionResponseAdmin
-    @OptIn(ExperimentalTime::class)
+    @OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
     constructor(
-        val id: String,
+        val id: Uuid,
         val kind: Kind,
         val writingId: String? = null,
-        val parentId: String? = null,
+        val parentId: Uuid? = null,
         val userId: String,
         val body: String,
         // Moderation (full for admin)
         val status: DiscussionsStatus,
         val reason: String? = null,
         val moderatedBy: UID? = null,
-        @Contextual val moderatedAt: Instant? = null,
+        val moderatedAt: Instant? = null,
         // Reporting
         val reportedBy: Set<UID> = emptySet(),
         // Admin flags
         val isPinned: Boolean = false,
         val isLocked: Boolean = false,
-        @Contextual val createdAt: Instant,
-        @Contextual val updatedAt: Instant? = null,
+        val childCount: Int = 0,
+        val createdAt: Instant,
+        val updatedAt: Instant? = null,
     )
 
 /**
  * Mapping helpers from domain model to response projections.
  */
-@OptIn(ExperimentalTime::class)
+@OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
 fun Discussion.toPublicResponse(
     isLikedByMe: Boolean = false,
+    isReportedByMe: Boolean = false,
     likesOverride: Int? = null,
+    author: UserData? = null,
+    childCount: Int = 0,
 ): DiscussionResponsePublic =
     DiscussionResponsePublic(
         id = id,
@@ -79,6 +88,7 @@ fun Discussion.toPublicResponse(
         writingId = writingId,
         parentId = parentId,
         userId = userId,
+        author = author,
         body = body,
         status = status,
         reason = reason,
@@ -86,12 +96,14 @@ fun Discussion.toPublicResponse(
         isLocked = isLocked,
         likesCount = likesOverride ?: 0,
         isLikedByMe = isLikedByMe,
+        isReportedByMe = isReportedByMe,
+        childCount = childCount,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )
 
-@OptIn(ExperimentalTime::class)
-fun Discussion.toAdminResponse(): DiscussionResponseAdmin =
+@OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
+fun Discussion.toAdminResponse(childCount: Int = 0): DiscussionResponseAdmin =
     DiscussionResponseAdmin(
         id = id,
         kind = kind,
@@ -106,6 +118,7 @@ fun Discussion.toAdminResponse(): DiscussionResponseAdmin =
         reportedBy = reportedBy,
         isPinned = isPinned,
         isLocked = isLocked,
+        childCount = childCount,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

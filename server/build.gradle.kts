@@ -22,10 +22,23 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":common"))
     implementation(project(":auth"))
+    // Exposed
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.hikari.cp)
+    implementation(libs.supabase.postgresql)
+    implementation("org.postgresql:postgresql:42.7.5")
+
+    implementation(platform(libs.mongodb.bom))
+    implementation(libs.mongodb.kotlin.coroutine)
     implementation(project(":community"))
     implementation(project(":writings"))
     implementation(project(":infrastructure"))
     implementation(project(":reports"))
+
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
 
     // ──────────────── Ktor Server (HTTP engine + middleware) ────────────────
     implementation(libs.ktor.server.core)

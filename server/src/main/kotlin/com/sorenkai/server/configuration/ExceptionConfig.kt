@@ -6,10 +6,13 @@ import com.sorenkai.server.errors.ErrorResponses
 import com.sorenkai.server.errors.ServerExceptions
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.application.log
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.plugins.callid.callId
 import io.ktor.server.plugins.requestvalidation.RequestValidationException
 import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.request.httpMethod
+import io.ktor.server.request.path
 import io.ktor.server.response.respond
 import io.micrometer.core.instrument.config.validate.ValidationException
 
@@ -153,6 +156,37 @@ fun Application.configureExceptionMapping() {
                 )
             call.respond(code.http, body)
         }
+        exception<IllegalArgumentException> { call, e ->
+            val code = ErrorCode.VALIDATION_FAILED
+            val body =
+                ErrorResponses(
+                    ok = false,
+                    error = ErrorBody(code.name, e.message ?: "Invalid argument"),
+                    requestId = call.callId,
+                )
+            call.respond(code.http, body)
+        }
+        exception<kotlinx.serialization.SerializationException> { call, e ->
+            val code = ErrorCode.VALIDATION_FAILED
+            val body =
+                ErrorResponses(
+                    ok = false,
+                    error = ErrorBody(code.name, "Serialization error: ${e.message}"),
+                    requestId = call.callId,
+                )
+            call.respond(code.http, body)
+        }
+        exception<com.mongodb.MongoWriteException> { call, e ->
+            val code = if (e.error.code == 11000) ErrorCode.CONFLICT else ErrorCode.INTERNAL
+            val message = if (e.error.code == 11000) "Duplicate key" else (e.message ?: "Mongo write error")
+            val body =
+                ErrorResponses(
+                    ok = false,
+                    error = ErrorBody(code.name, message),
+                    requestId = call.callId,
+                )
+            call.respond(code.http, body)
+        }
         exception<NotFoundException> { call, e ->
             val code = ErrorCode.NOT_FOUND
             val body =
@@ -166,6 +200,7 @@ fun Application.configureExceptionMapping() {
 
         // Fallback: unhandled exceptions -> 500 with generic code
         exception<Throwable> { call, cause ->
+            call.application.log.error("Unhandled exception on ${call.request.httpMethod.value} ${call.request.path()}", cause)
             val code = ErrorCode.INTERNAL
             val body =
                 ErrorResponses(

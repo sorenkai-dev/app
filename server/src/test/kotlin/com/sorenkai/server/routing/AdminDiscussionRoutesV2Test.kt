@@ -4,10 +4,13 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.sorenkai.community.discussions.services.DiscussionService
 import com.sorenkai.core.model.auth.UID
+import com.sorenkai.core.model.common.UpdateResult
 import com.sorenkai.core.model.community.discussions.Discussion
 import com.sorenkai.core.model.community.discussions.DiscussionsStatus
 import com.sorenkai.core.model.community.discussions.Kind
+import com.sorenkai.core.repo.DiscussionWithLikes
 import com.sorenkai.core.repo.IDiscussionRepository
+import com.sorenkai.core.repo.ILikeRepository
 import com.sorenkai.server.configuration.configureSerialization
 import io.ktor.client.request.header
 import io.ktor.client.request.patch
@@ -31,81 +34,146 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @kotlin.time.ExperimentalTime
 private class AdminInMemoryRepo :
     IDiscussionRepository,
-    com.sorenkai.core.repo.ILikeRepository {
-    private val store = mutableMapOf<String, Discussion>()
+    ILikeRepository {
+    private val store = mutableMapOf<Uuid, Discussion>()
 
     override suspend fun insert(discussion: Discussion): Discussion {
         store[discussion.id] = discussion
         return discussion
     }
 
-    override suspend fun findById(id: String): Discussion? = store[id]
+    override suspend fun findById(id: Uuid): Discussion? = store[id]
+
+    override suspend fun findByIdWithLikes(
+        id: Uuid,
+        currentUserId: UID?,
+        isModerator: Boolean,
+    ): DiscussionWithLikes? {
+        val d = store[id] ?: return null
+        return DiscussionWithLikes(d, 0, false, false)
+    }
 
     override suspend fun listPosts(
-        writingSlug: String?,
+        writingId: String?,
         lang: String?,
         statuses: Set<DiscussionsStatus>,
         limit: Int,
         offset: Int,
-    ) = emptyList<Discussion>()
+        currentUserId: UID?,
+        isModerator: Boolean,
+        order: com.sorenkai.core.repo.DiscussionOrder,
+    ) = emptyList<DiscussionWithLikes>()
 
     override suspend fun listComments(
-        parentId: String,
+        parentId: Uuid,
         statuses: Set<DiscussionsStatus>,
         limit: Int,
         offset: Int,
-    ) = emptyList<Discussion>()
+        currentUserId: UID?,
+        isModerator: Boolean,
+    ) = emptyList<DiscussionWithLikes>()
+
+    override suspend fun countChildren(parentIds: Set<Uuid>): Map<Uuid, Int> = emptyMap()
 
     override suspend fun updateBody(
-        id: String,
+        id: Uuid,
         body: String,
         updatedAt: kotlin.time.Instant,
-    ) = false
+        currentUserId: UID?,
+    ): DiscussionWithLikes? {
+        val cur = store[id] ?: return null
+        val updated = cur.copy(body = body, updatedAt = updatedAt)
+        store[id] = updated
+        return findByIdWithLikes(id, currentUserId)
+    }
 
     override suspend fun setStatus(
-        id: String,
+        id: Uuid,
         status: DiscussionsStatus,
-        moderatedBy: String?,
+        moderatedBy: UID?,
         moderatedAt: kotlin.time.Instant?,
         reason: String?,
-    ): Boolean {
-        val cur = store[id] ?: return false
-        store[id] = cur.copy(status = status, moderatedBy = moderatedBy, moderatedAt = moderatedAt, reason = reason)
-        return true
+        deletedAt: kotlin.time.Instant?,
+        purgeAt: kotlin.time.Instant?,
+        currentUserId: UID?,
+    ): DiscussionWithLikes? {
+        val cur = store[id] ?: return null
+        val updated =
+            cur.copy(
+                status = status,
+                moderatedBy = moderatedBy,
+                moderatedAt = moderatedAt,
+                reason = reason,
+                deletedAt = deletedAt,
+                purgeAt = purgeAt,
+            )
+        store[id] = updated
+        return findByIdWithLikes(id, currentUserId)
+    }
+
+    override suspend fun restore(
+        id: Uuid,
+        currentUserId: UID?,
+    ): DiscussionWithLikes? {
+        val cur = store[id] ?: return null
+        val updated = cur.copy(status = DiscussionsStatus.VISIBLE, deletedAt = null, purgeAt = null)
+        store[id] = updated
+        return findByIdWithLikes(id, currentUserId)
     }
 
     override suspend fun setPinned(
-        id: String,
+        id: Uuid,
         pinned: Boolean,
-    ) = com.sorenkai.core.model.common.UpdateResult.Success
+    ) = UpdateResult.Success
 
     override suspend fun setLocked(
-        id: String,
+        id: Uuid,
         locked: Boolean,
-    ) = com.sorenkai.core.model.common.UpdateResult.Success
+    ) = UpdateResult.Success
 
-    override suspend fun like(
-        targetId: String,
+    override suspend fun likeDiscussion(
+        discussionId: Uuid,
         userId: UID,
     ) {}
 
-    override suspend fun unlike(
-        targetId: String,
+    override suspend fun unlikeDiscussion(
+        discussionId: Uuid,
         userId: UID,
     ) {}
 
-    override suspend fun countLikes(targetIds: List<String>): Map<String, Long> = emptyMap()
+    override suspend fun likeWriting(
+        writingId: String,
+        userId: UID,
+    ) {}
 
-    override suspend fun getLikedTargets(
-        targetIds: List<String>,
+    override suspend fun unlikeWriting(
+        writingId: String,
+        userId: UID,
+    ) {}
+
+    override suspend fun countDiscussionLikes(discussionIds: Set<Uuid>): Map<Uuid, Long> = emptyMap()
+
+    override suspend fun countWritingLikes(writingIds: Set<String>): Map<String, Long> = emptyMap()
+
+    override suspend fun getLikedDiscussions(
+        discussionIds: Set<Uuid>,
+        userId: UID,
+    ): Set<Uuid> = emptySet()
+
+    override suspend fun getLikedWritings(
+        writingIds: Set<String>,
         userId: UID,
     ): Set<String> = emptySet()
 }
 
+@OptIn(ExperimentalUuidApi::class)
 @kotlin.time.ExperimentalTime
 class AdminDiscussionRoutesV2Test {
     private fun Application.testModule(repo: IDiscussionRepository) {
@@ -128,7 +196,7 @@ class AdminDiscussionRoutesV2Test {
         install(Koin) {
             modules(
                 module {
-                    val repoAsLikes = repo as com.sorenkai.core.repo.ILikeRepository
+                    val repoAsLikes = repo as ILikeRepository
                     single { DiscussionService(repo, repoAsLikes, writings = null, postRateLimiter = null) }
                 },
             )
@@ -153,6 +221,7 @@ class AdminDiscussionRoutesV2Test {
             val d =
                 repo.insert(
                     Discussion(
+                        id = Uuid.random(),
                         kind = Kind.POST,
                         userId = "u1",
                         body = "x",
@@ -175,7 +244,8 @@ class AdminDiscussionRoutesV2Test {
                     setBody(body)
                 }
             assertEquals(HttpStatusCode.OK, resp.status)
-            assertTrue(resp.bodyAsText().contains("\"ok\":true"))
+            assertTrue(resp.bodyAsText().contains("\"status\":\"HIDDEN_BY_MODERATOR\""))
+            assertTrue(resp.bodyAsText().contains("\"reason\":\"moderation\""))
         }
 
     @Test
@@ -186,6 +256,7 @@ class AdminDiscussionRoutesV2Test {
             val d =
                 repo.insert(
                     Discussion(
+                        id = Uuid.random(),
                         kind = Kind.POST,
                         userId = "u1",
                         body = "x",

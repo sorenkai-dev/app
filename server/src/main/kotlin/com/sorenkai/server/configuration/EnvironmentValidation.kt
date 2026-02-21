@@ -13,12 +13,10 @@ fun Application.validateRequiredConfigOrFail() {
     val isProd = env.equals("prod", ignoreCase = true)
 
     val mongoUri = envOrProp("MONGODB_URI")
-    val gcpProject = envOrProp("GOOGLE_CLOUD_PROJECT")
 
     val missing = mutableListOf<String>()
     if (isProd) {
         if (mongoUri.isNullOrBlank()) missing += "MONGODB_URI"
-        if (gcpProject.isNullOrBlank()) missing += "GOOGLE_CLOUD_PROJECT"
     }
 
     if (missing.isNotEmpty()) {

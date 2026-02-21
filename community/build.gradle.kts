@@ -17,9 +17,15 @@ dependencies {
     // Serialization for community DTOs / requests / responses
     implementation(libs.kotlinx.serialization.json)
 
+    implementation(libs.logback.classic)
+
     // Unit Testing
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit.api)
     testRuntimeOnly(libs.junit.engine)
     testImplementation(libs.kotlinx.coroutines.test)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

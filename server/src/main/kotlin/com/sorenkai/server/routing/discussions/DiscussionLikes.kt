@@ -42,7 +42,7 @@ fun Route.discussionLikes(discussions: DiscussionService) {
                 communityLog.info("Unlike discussion not found id={} uid={} ", id, uid)
                 call.errorHandler(ErrorCode.NOT_FOUND, e.message)
             } catch (e: DiscussionService.ValidationException) {
-                val code = ErrorCode.VALIDATION_FAILED
+                ErrorCode.VALIDATION_FAILED
                 communityLog.warn("Validation failed unliking discussion id={} uid={} : {}", id, uid, e.message)
                 call.errorHandler(ErrorCode.VALIDATION_FAILED, e.message)
             }

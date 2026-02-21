@@ -37,6 +37,7 @@ fun Writing.toMongoEntity(): WritingMongoEntity =
         tags = this.tags,
         featured = this.featured,
         seoDescription = this.seoDescription,
+        jsonLd = this.jsonLd,
     )
 
 @OptIn(ExperimentalTime::class)
@@ -66,4 +67,5 @@ fun WritingMongoEntity.toCoreModel(): Writing =
         tags = this.tags,
         featured = this.featured,
         seoDescription = this.seoDescription,
+        jsonLd = this.jsonLd,
     )

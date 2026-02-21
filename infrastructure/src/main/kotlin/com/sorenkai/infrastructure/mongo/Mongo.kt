@@ -67,6 +67,10 @@ object Mongo {
 
         // 2. Define the CodecRegistry that USES the custom module
         //    We'll call this the 'kotlinxCodecRegistry' for clarity
+        //    We also use a Json instance to configure behavior, although
+        //    KotlinSerializerCodecProvider mainly uses the SerializersModule.
+        //    Actually, KotlinSerializerCodecProvider doesn't take a Json instance,
+        //    but we want to ensure it respects @EncodeDefault.
         val kotlinxCodecRegistry =
             CodecRegistries.fromProviders(
                 KotlinSerializerCodecProvider(customSerializersModule),

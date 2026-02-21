@@ -13,7 +13,10 @@ import com.sorenkai.core.model.reports.TargetType
 import com.sorenkai.core.repo.IReportRepository
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class ReportService(
     private val reports: IReportRepository,
 ) {
@@ -40,15 +43,16 @@ class ReportService(
         if (req.targetId.isBlank()) throw ValidationException("Missing targetId")
 
         val targetType = parseTargetType(req.targetType)
+        val targetId = parseUuid(req.targetId)
 
-        val exists = reports.existsOpenOrReviewed(uid, targetType, req.targetId)
+        val exists = reports.existsOpenOrReviewed(uid, targetType, targetId)
         if (exists) throw ConflictException("Duplicate report exists for this target")
 
         val now = Clock.System.now()
         val toInsert =
             Report(
                 targetType = targetType,
-                targetId = req.targetId,
+                targetId = targetId,
                 reason = reason,
                 createdAt = now,
                 createdBy = uid,
@@ -66,7 +70,8 @@ class ReportService(
     ): List<ReportResponseAdmin> {
         val lim = limit.coerceIn(1, MAX_ADMIN_REPORTS)
         val off = offset.coerceAtLeast(0)
-        return reports.listAdmin(status, targetType, targetId, lim, off).map { it.toAdminResponse() }
+        val tid = targetId?.let { parseUuid(it) }
+        return reports.listAdmin(status, targetType, tid, lim, off).map { it.toAdminResponse() }
     }
 
     suspend fun updateStatus(
@@ -75,7 +80,8 @@ class ReportService(
         newStatus: ReportStatus,
     ): Boolean {
         if (actorUid.isBlank()) throw ValidationException("Missing actor uid")
-        val current = reports.findById(id) ?: return false
+        val uuid = parseUuid(id)
+        val current = reports.findById(uuid) ?: return false
         // Transition rules: OPEN -> IN_REVIEW -> RESOLVED only
         val ok =
             when (current.status) {
@@ -83,13 +89,17 @@ class ReportService(
                 ReportStatus.IN_REVIEW -> newStatus == ReportStatus.RESOLVED
                 ReportStatus.RESOLVED -> false
             }
-        if (!ok) throw ConflictException("Invalid status transition: ${'$'}{current.status} -> ${'$'}newStatus")
+        if (!ok) throw ConflictException("Invalid status transition: ${current.status} -> $newStatus")
 
-        val updated = reports.updateStatus(id, newStatus)
+        val updated = reports.updateStatus(uuid, newStatus)
         return updated
     }
 
     private fun parseTargetType(raw: String): TargetType =
         runCatching { TargetType.valueOf(raw.uppercase()) }
             .getOrElse { throw ValidationException("Invalid targetType") }
+
+    private fun parseUuid(raw: String): Uuid =
+        runCatching { Uuid.parse(raw) }
+            .getOrElse { throw ValidationException("Invalid ID format") }
 }

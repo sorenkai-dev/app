@@ -3,6 +3,7 @@ package com.sorenkai.core.model.writings
 import com.sorenkai.common.util.newId
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -29,6 +30,7 @@ data class Writing
         val tags: List<String> = emptyList(),
         val featured: Boolean? = null,
         val seoDescription: String? = null,
+        val jsonLd: JsonObject? = null,
     ) {
         @Serializable
         data class WritingsStats(

@@ -1,5 +1,6 @@
 package com.sorenkai.core.dto.writings
 
+import com.sorenkai.core.auth.UserData
 import com.sorenkai.core.model.writings.Writing
 import com.sorenkai.core.model.writings.WritingsStatus
 import com.sorenkai.core.model.writings.WritingsType
@@ -37,9 +38,11 @@ import kotlin.time.Instant
 data class WritingListItem
     @OptIn(ExperimentalTime::class)
     constructor(
+        val id: String,
         val title: String,
         val slug: String,
         val language: String,
+        val author: UserData? = null,
         val synopsis: String? = null,
         val writingsStatus: WritingsStatus,
         val writingsType: WritingsType,
@@ -105,9 +108,11 @@ data class WritingListItem
 data class WritingDetail
     @OptIn(ExperimentalTime::class)
     constructor(
+        val id: String,
         val title: String,
         val slug: String,
         val language: String,
+        val author: UserData? = null,
         val synopsis: String? = null,
         val writingsType: WritingsType,
         val salesLink: String? = null,
@@ -141,11 +146,14 @@ data class WritingDetail
 fun Writing.toListItem(
     isLikedByMe: Boolean = false,
     likesOverride: Int? = null,
+    author: UserData? = null,
 ): WritingListItem =
     WritingListItem(
+        id = id,
         title = title,
         slug = slug,
         language = language,
+        author = author,
         synopsis = synopsis,
         writingsStatus = writingsStatus,
         writingsType = writingsType,
@@ -171,11 +179,14 @@ fun Writing.toListItem(
 fun Writing.toDetail(
     isLikedByMe: Boolean = false,
     likesOverride: Int? = null,
+    author: UserData? = null,
 ): WritingDetail =
     WritingDetail(
+        id = id,
         title = title,
         slug = slug,
         language = language,
+        author = author,
         synopsis = synopsis,
         writingsType = writingsType,
         salesLink = salesLink,

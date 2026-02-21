@@ -46,6 +46,7 @@ private fun defaultJson(): Json =
     Json {
         ignoreUnknownKeys = true
         explicitNulls = false
+        encodeDefaults = true
         prettyPrint = false
         isLenient = false
     }

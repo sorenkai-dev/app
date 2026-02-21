@@ -7,12 +7,14 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
 
 /**
  * Public projection for reports returned to the reporting user.
  * Excludes createdBy.
  */
 @Serializable
+@OptIn(ExperimentalUuidApi::class)
 data class ReportResponsePublic
     @OptIn(ExperimentalTime::class)
     constructor(
@@ -29,6 +31,7 @@ data class ReportResponsePublic
  * Includes all fields.
  */
 @Serializable
+@OptIn(ExperimentalUuidApi::class)
 data class ReportResponseAdmin
     @OptIn(ExperimentalTime::class)
     constructor(
@@ -41,23 +44,23 @@ data class ReportResponseAdmin
         val status: ReportStatus,
     )
 
-@OptIn(ExperimentalTime::class)
+@OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
 fun Report.toPublicResponse(): ReportResponsePublic =
     ReportResponsePublic(
-        id = id,
+        id = id.toString(),
         targetType = targetType,
-        targetId = targetId,
+        targetId = targetId.toString(),
         reason = reason,
         createdAt = createdAt,
         status = status,
     )
 
-@OptIn(ExperimentalTime::class)
+@OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
 fun Report.toAdminResponse(): ReportResponseAdmin =
     ReportResponseAdmin(
-        id = id,
+        id = id.toString(),
         targetType = targetType,
-        targetId = targetId,
+        targetId = targetId.toString(),
         reason = reason,
         createdAt = createdAt,
         createdBy = createdBy,

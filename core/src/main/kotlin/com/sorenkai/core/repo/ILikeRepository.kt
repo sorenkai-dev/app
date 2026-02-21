@@ -1,36 +1,58 @@
 package com.sorenkai.core.repo
 
 import com.sorenkai.core.model.auth.UID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 interface ILikeRepository {
-    /**
-     * Adds a like from userId to targetId. Should be idempotent.
-     */
-    suspend fun like(
-        targetId: String,
+    /* =======================
+       Write operations
+       ======================= */
+
+    /** Idempotently likes a discussion or comment. */
+    suspend fun likeDiscussion(
+        discussionId: Uuid,
         userId: UID,
     )
 
-    /**
-     * Removes a like from userId to targetId.
-     */
-    suspend fun unlike(
-        targetId: String,
+    /** Removes a like from a discussion or comment. */
+    suspend fun unlikeDiscussion(
+        discussionId: Uuid,
         userId: UID,
     )
 
-    /**
-     * Counts likes for a list of targetIds.
-     * Returns a map of targetId to count.
-     */
-    suspend fun countLikes(targetIds: List<String>): Map<String, Long>
+    /** Idempotently likes a writing. */
+    suspend fun likeWriting(
+        writingId: String,
+        userId: UID,
+    )
 
-    /**
-     * Checks which targets from the given list are liked by a given user.
-     * Returns a set of targetIds liked by the user.
-     */
-    suspend fun getLikedTargets(
-        targetIds: List<String>,
+    /** Removes a like from a writing. */
+    suspend fun unlikeWriting(
+        writingId: String,
+        userId: UID,
+    )
+
+    /* =======================
+       Read operations
+       ======================= */
+
+    /** Counts likes for discussions/comments. */
+    suspend fun countDiscussionLikes(discussionIds: Set<Uuid>): Map<Uuid, Long>
+
+    /** Counts likes for writings. */
+    suspend fun countWritingLikes(writingIds: Set<String>): Map<String, Long>
+
+    /** Returns discussion IDs liked by the given user. */
+    suspend fun getLikedDiscussions(
+        discussionIds: Set<Uuid>,
+        userId: UID,
+    ): Set<Uuid>
+
+    /** Returns writing IDs liked by the given user. */
+    suspend fun getLikedWritings(
+        writingIds: Set<String>,
         userId: UID,
     ): Set<String>
 }

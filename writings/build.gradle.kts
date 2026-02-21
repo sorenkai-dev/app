@@ -16,6 +16,8 @@ dependencies {
 
     implementation(project(":infrastructure"))
 
+    implementation(libs.apache.poi.oomxl)
+
     // Serialization for writing metadata, DTO definitions, etc.
     implementation(libs.kotlinx.serialization.json)
 

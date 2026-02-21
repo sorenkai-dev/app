@@ -17,6 +17,15 @@ dependencies {
     // Serialization (often required in infrastructure mappers / DTOs)
     implementation(libs.kotlinx.serialization.json)
 
+    implementation(libs.logback.classic)
+
+    // Exposed
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.dao)
+    implementation(libs.exposed.datetime)
+    implementation(libs.supabase.postgresql)
+
     implementation(platform(libs.mongodb.bom))
     implementation(libs.mongodb.bson.kotlinx)
     implementation(libs.mongodb.kotlin.coroutine)

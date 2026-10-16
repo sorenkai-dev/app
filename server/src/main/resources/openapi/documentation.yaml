@@ -1,0 +1,737 @@
+openapi: 3.0.3
+info:
+  title: SorenKai API
+  description: |
+    Backend API for writings, discussions, and reports with Zotadel Auth.
+
+    API lifecycle & versioning:
+    - URI versioning: breaking changes are introduced under a new prefix (e.g., /v2). The current stable version is v1.
+    - Backward-compatible changes (additive fields/endpoints) may be added within v1.
+    - Deprecation policy: deprecated endpoints/fields will be marked `deprecated: true` in this spec and may include response headers:
+      - Deprecation: "true"
+      - Sunset: RFC 8594 date-time indicating planned removal
+      - Link: rel="deprecation" URL to migration guide
+    - Clients SHOULD ignore unknown fields and handle 409 on duplicate-safe POST retries.
+  version: 1.0.0
+servers:
+  - url: https://sorenkai-api-staging-432438073502.us-central1.run.app
+    description: Staging
+  - url: https://sorenkai-api-prod-432438073502.us-central1.run.app
+    description: Production
+paths:
+  /serverhealth:
+    get:
+      summary: Server health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+  /v1/writings:
+    get:
+      summary: List published writings (offset pagination)
+      security:
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 12
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Page of writing list items (metadata only)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageWritingListItem'
+        '401':
+          description: Missing App Check token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Origin not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/writings/{slug}:
+    get:
+      summary: Get a single writing by slug
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Writing detail including Markdown content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WritingDetail'
+        '400':
+          description: Missing slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '401':
+          description: Missing App Check token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Origin not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/writings/{slug}/share:
+    post:
+      summary: Increment share count for a writing
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated share count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareResponse'
+        '400':
+          description: Missing slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/writings/{slug}/like:
+    post:
+      summary: Increment like count for a writing
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated like count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeResponse'
+        '400':
+          description: Missing slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/writings/{slug}/unlike:
+    post:
+      summary: Decrement like count for a writing (not below zero)
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated like count (idempotent when already 0)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeResponse'
+        '400':
+          description: Missing slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/writings/{slug}/view:
+    post:
+      summary: Increment view count for a writing
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated view count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewResponse'
+        '400':
+          description: Missing slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/writings/{slug}/click-sale:
+    post:
+      summary: Increment sales click count for a writing
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated sales click count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesClickResponse'
+        '400':
+          description: Missing slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/discussions:
+    get:
+      summary: List discussions
+      parameters:
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - in: query
+          name: cursor
+          schema:
+            type: string
+            description: Opaque cursor returned by previous page
+        - in: query
+          name: writingId
+          schema:
+            type: string
+            nullable: true
+          description: Optional ID of a writing to filter threads
+        - in: query
+          name: parentId
+          schema:
+            type: string
+            nullable: true
+          description: Optional parent discussion id to list replies
+      responses:
+        '200':
+          description: Page of discussions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageDiscussion'
+        '401':
+          description: Missing App Check token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Origin not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+    post:
+      summary: Create a new discussion (post or comment)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscussionCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discussion'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Origin not allowed or missing App Check
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Related writing not found (when writingSlug provided)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/discussions/{id}:
+    patch:
+      summary: Edit own discussion
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Origin not allowed or missing App Check
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found or not owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+    delete:
+      summary: Delete own discussion
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Origin not allowed or missing App Check
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found or not owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/reports:
+    post:
+      summary: Create a report
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/mod/reports:
+    get:
+      summary: List reports (moderators)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [open, closed]
+            default: open
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Page of reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageReport'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Forbidden (requires MOD or ADMIN roles)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+  /v1/mod/reports/{id}/close:
+    post:
+      summary: Close a report (moderators)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Closed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  headers:
+    X-API-Version:
+      description: Current API major version for this response.
+      schema:
+        type: string
+        example: v1
+    Deprecation:
+      description: Indicates that the requested endpoint is deprecated (RFC 8594 guidance).
+      schema:
+        type: string
+        example: "true"
+    Sunset:
+      description: Date/time when the deprecated endpoint is expected to be removed (RFC 8594).
+      schema:
+        type: string
+        format: date-time
+        example: "2026-01-01T00:00:00Z"
+  schemas:
+    WritingListItem:
+      type: object
+      required: [slug, title, language, status, type, createdAt]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        language: { type: string, description: "ISO language code (e.g., en, es)" }
+        synopsis: { type: string, nullable: true }
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED, ARCHIVED, SUBMITTED]
+        type:
+          type: string
+          enum: [ARTICLE, BOOK]
+        salesLink: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time, nullable: true }
+        featured: { type: boolean, nullable: true }
+        seoDescription: { type: string, nullable: true }
+        stats:
+          type: object
+          required: [commentCount, viewCount, likesCount, shareCount, salesClicks]
+          properties:
+            commentCount: { type: integer, minimum: 0 }
+            viewCount: { type: integer, minimum: 0 }
+            likesCount: { type: integer, minimum: 0 }
+            isLikedByMe: { type: boolean, default: false }
+            shareCount: { type: integer, minimum: 0 }
+            salesClicks: { type: integer, minimum: 0 }
+
+    PageWritingListItem:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WritingListItem'
+        nextOffset:
+          type: integer
+          nullable: true
+
+    WritingDetail:
+      type: object
+      required: [slug, title, body, tags, createdAt, createdBy]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        body: { type: string, description: "Markdown content" }
+        summary: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string }
+
+    ShareResponse:
+      type: object
+      properties:
+        slug: { type: string }
+        shareCount: { type: integer }
+
+    LikeResponse:
+      type: object
+      properties:
+        slug: { type: string }
+        likesCount: { type: integer }
+
+    ViewResponse:
+      type: object
+      properties:
+        slug: { type: string }
+        viewCount: { type: integer }
+
+    SalesClickResponse:
+      type: object
+      properties:
+        slug: { type: string }
+        salesClicks: { type: integer }
+
+    Discussion:
+      type: object
+      required: [id, kind, body, userId, createdAt]
+      properties:
+        id: { type: string }
+        kind:
+          type: string
+          enum: [POST, COMMENT]
+        writingId:
+          type: string
+          nullable: true
+        parentId:
+          type: string
+          nullable: true
+        body: { type: string }
+        userId: { type: string }
+        createdAt: { type: string, format: date-time }
+        editedAt: { type: string, format: date-time, nullable: true }
+
+    DiscussionCreateRequest:
+      type: object
+      required: [kind, body]
+      properties:
+        kind:
+          type: string
+          enum: [POST, COMMENT]
+        writingId: { type: string, nullable: true }
+        parentId: { type: string, nullable: true }
+        body: { type: string }
+
+    PageDiscussion:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Discussion'
+        nextCursor:
+          type: string
+          nullable: true
+
+    Report:
+      type: object
+      required: [id, targetType, targetId, reason, createdAt, createdBy, status]
+      properties:
+        id: { type: string }
+        targetType:
+          type: string
+          enum: [WRITING, DISCUSSION]
+        targetId: { type: string }
+        reason: { type: string }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string }
+        status:
+          type: string
+          enum: [OPEN, CLOSED]
+
+    ReportCreateRequest:
+      type: object
+      required: [targetType, targetId, reason]
+      properties:
+        targetType:
+          type: string
+          enum: [WRITING, DISCUSSION]
+        targetId: { type: string }
+        reason: { type: string }
+
+    ApiErrorResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details:
+              type: object
+              additionalProperties:
+                type: string
+              nullable: true
+
+    PageReport:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+        nextCursor:
+          type: string
+          nullable: true
+

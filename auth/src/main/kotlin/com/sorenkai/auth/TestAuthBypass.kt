@@ -1,7 +1,7 @@
 package com.sorenkai.auth
 
 import com.sorenkai.common.util.isProdEnv
-import com.sorenkai.core.model.auth.Role
+import com.sorenkai.common.model.auth.Role
 
 internal fun testUid(): String? {
     // Only allow test bypass when explicitly enabled for tests.
@@ -39,3 +39,7 @@ internal fun testRoles(): Set<Role> {
         }.toSet()
         .ifEmpty { setOf(Role.USER) }
 }
+
+
+
+

@@ -4,14 +4,13 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(24)
+    jvmToolchain(25)
 }
 
 dependencies {
 
     // Serialization utilities used project-wide
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kotlinx.datetime)
     implementation(libs.logback.classic)
 
     // BSON types (ObjectId) used by util.newId()

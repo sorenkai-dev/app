@@ -1,6 +1,10 @@
 package com.sorenkai.common.util
 
-import org.bson.types.ObjectId
+import java.util.UUID
 
-// Generate a MongoDB ObjectId hex string for use as primary keys
-fun newId(): String = ObjectId().toHexString()
+// Generate a UUID string for use as primary keys
+fun newId(): String = UUID.randomUUID().toString()
+
+
+
+

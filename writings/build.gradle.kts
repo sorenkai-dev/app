@@ -3,18 +3,13 @@ plugins {
     alias(libs.plugins.kotlinx.serialization)
 }
 
-kotlin {
-    jvmToolchain(24)
-}
-
 dependencies {
     // Core domain contracts (IDs, shared domain errors, base entities)
-    implementation(project(":core"))
-
-    // Common utilities (optional for DTO helpers, result types, etc.)
     implementation(project(":common"))
 
-    implementation(project(":infrastructure"))
+    implementation(platform(libs.mongodb.bom))
+    implementation(libs.mongodb.kotlin.coroutine)
+    implementation(libs.mongodb.bson.kotlinx)
 
     implementation(libs.apache.poi.oomxl)
 

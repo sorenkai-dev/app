@@ -8,11 +8,12 @@ dependencyResolutionManagement {
     }
 }
 
+include(":analytics")
+include(":api")
 include(":auth")
-include(":core")
+include(":audit")
 include(":common")
-include(":infrastructure")
-include(":community")
+include(":discussions")
+
+include(":enrichment")
 include(":writings")
-include(":server")
-include(":reports")

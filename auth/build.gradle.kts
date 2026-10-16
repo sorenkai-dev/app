@@ -6,7 +6,6 @@ plugins {
 dependencies {
 
     implementation(project(":common"))
-    implementation(project(":common"))
     // ──────────────── Core Language / Serialization ────────────────
     implementation(libs.kotlinx.serialization.json)
 

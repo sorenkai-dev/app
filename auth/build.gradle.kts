@@ -3,13 +3,9 @@ plugins {
     alias(libs.plugins.kotlinx.serialization)
 }
 
-kotlin {
-    jvmToolchain(24)
-}
-
 dependencies {
 
-    implementation(project(":core"))
+    implementation(project(":common"))
     implementation(project(":common"))
     // ──────────────── Core Language / Serialization ────────────────
     implementation(libs.kotlinx.serialization.json)

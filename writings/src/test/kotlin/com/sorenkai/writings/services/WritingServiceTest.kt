@@ -1,13 +1,14 @@
 package com.sorenkai.writings.services
 
-import com.sorenkai.core.model.auth.UID
-import com.sorenkai.core.model.writings.Writing
-import com.sorenkai.core.model.writings.WritingPublisher
-import com.sorenkai.core.model.writings.WritingsStatus
-import com.sorenkai.core.model.writings.WritingsType
-import com.sorenkai.core.repo.ILikeRepository
-import com.sorenkai.core.repo.IWritingRepository
-import com.sorenkai.core.repo.WritingWithLikes
+import com.sorenkai.common.model.auth.UID
+import com.sorenkai.writings.model.Writing
+import com.sorenkai.writings.model.WritingPublisher
+import com.sorenkai.writings.model.WritingsStatus
+import com.sorenkai.writings.model.WritingsType
+import com.sorenkai.likes.repository.ILikeRepository
+import com.sorenkai.writings.repository.IWritingRepository
+import com.sorenkai.writings.repository.WritingWithLikes
+import com.sorenkai.writings.service.WritingService
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -485,3 +486,7 @@ class WritingServiceTest {
         }
     }
 }
+
+
+
+

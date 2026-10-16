@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.ktor.plugin) apply false
     // Code style
     alias(libs.plugins.detekt) apply false
-    alias(libs.plugins.spotless) apply false
     alias(libs.plugins.ktlint) apply false
 }
 
@@ -21,28 +20,9 @@ subprojects {
     group = "com.sorenkai"
     version = "2.0.0"
 
-    apply(plugin = "com.diffplug.spotless")
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     apply(plugin = "dev.detekt")
 
-    extensions.configure<com.diffplug.gradle.spotless.SpotlessExtension> {
-        val skipSpotless = project.hasProperty("skipSpotless")
-        if (skipSpotless) {
-            isEnforceCheck = false
-        }
-        kotlin {
-            target("src/**/*.kt")
-            ktlint()
-            trimTrailingWhitespace()
-            endWithNewline()
-        }
-        kotlinGradle {
-            target("**/*.gradle.kts")
-            ktlint()
-            trimTrailingWhitespace()
-            endWithNewline()
-        }
-    }
 
     // Ktlint plugin defaults
     extensions.configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
